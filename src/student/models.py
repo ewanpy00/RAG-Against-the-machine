@@ -23,6 +23,7 @@ class Answer(BaseModel):
     question_id: str
     question: str
     answer: str
+    sources: list["MinimalSource"] = []
 
 class RagDataset(BaseModel):
     rag_questions: list[Answer]

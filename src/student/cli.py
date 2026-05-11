@@ -4,6 +4,7 @@ from typing import List
 
 from tqdm import tqdm
 
+from student.evaluation.evaluator import Evaluator
 from student.ingestion.reader import Reader
 from student.ingestion.chunker import Chunker, ChunkerManager
 from student.ingestion.indexer import Indexer
@@ -124,3 +125,41 @@ class CLI:
             json.dump(output.model_dump(), f, indent=2)
         
         print(f"\nSaved student_search_results to {output_file}")
+
+    def evaluate(
+        self,
+        student_results_path: str,
+        ground_truth_path: str,
+        k: int = 10,
+    ) -> None:
+        try:
+            with open(student_results_path, "r", encoding="utf-8") as f:
+                student_results = StudentSearchResults(**json.load(f))
+        except FileNotFoundError:
+            print(f"Error: Student results not found: {student_results_path}")
+            return
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in student results: {e}")
+            return
+        
+        try:
+            with open(ground_truth_path, "r", encoding="utf-8") as f:
+                ground_truth = RagDataset(**json.load(f))
+        except FileNotFoundError:
+            print(f"Error: Ground truth dataset not found: {ground_truth_path}")
+            return
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in ground truth dataset: {e}")
+            return
+        
+        evaluator = Evaluator()
+        recall_at_k = evaluator.evaluate(
+            student_results=student_results,
+            ground_truth=ground_truth,
+            ks=[k],
+        )
+        
+        print(f"\nEvaluation Results:")
+        print(recall_at_k)
+        for k_val, recall in recall_at_k.items():
+            print(f"Recall@{k_val}: {recall:.4f}")
