@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Document(BaseModel):
@@ -20,8 +20,9 @@ class Chunk(BaseModel):
     file_type: str
 
 class Answer(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     question_id: str
-    question: str
+    question_str: str = Field(alias="question")
     answer: str
     sources: list["MinimalSource"] = []
 
@@ -33,9 +34,18 @@ class MinimalSource(BaseModel):
     first_character_index: int
     last_character_index: int
 
-class MinimalSearchResults(BaseModel):
+class Question(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
     question_id: str
-    question: str
+    question_str: str = Field(alias="question")
+
+class QuestionDataset(BaseModel):
+    rag_questions: list[Question]
+
+class MinimalSearchResults(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    question_id: str
+    question_str: str = Field(alias="question")
     retrieved_sources: list[MinimalSource]
 
 class StudentSearchResults(BaseModel):

@@ -17,7 +17,7 @@ install:
 	uv pip install -e .
 
 index:
-	python -m student index
+	uv run python -m student index
 
 search:
 	python -m student search --query "$(QUERY)" --k $(K)
@@ -31,11 +31,11 @@ search-dataset:
 		--save_directory $(OUTPUT_DIR) --k $(K)
 
 evaluate:
-	python -m student evaluate \
+	uv run python -m student evaluate \
 		--student_results_path $(OUTPUT_DIR)/dataset_code_public.json \
 		--ground_truth_path $(DATASET_ANSWERED)/dataset_code_public.json \
 		--k $(K)
-	python -m student evaluate \
+	uv run python -m student evaluate \
 		--student_results_path $(OUTPUT_DIR)/dataset_docs_public.json \
 		--ground_truth_path $(DATASET_ANSWERED)/dataset_docs_public.json \
 		--k $(K)

@@ -29,9 +29,7 @@ class Evaluator:
                     1 for src in question.sources
                     if self.is_source_found(src, top_k_sources)
                 )
-                # print(found_count)
-                
-                # Recall для этого вопроса = доля найденных
+
                 recall_for_question = found_count / len(question.sources)
                 recall_at_k[k] += recall_for_question
         
