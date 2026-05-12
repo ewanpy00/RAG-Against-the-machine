@@ -58,17 +58,30 @@ class Evaluator:
         
         return intersection_length / union_length
 
+    def _normalize_path(self, path: str) -> str:
+        prefixes = ["data/raw/vllm-0.10.1/", "vllm-0.10.1/"]
+        for prefix in prefixes:
+            if path.startswith(prefix):
+                return path[len(prefix):]
+        return path
+
     def is_source_found(
         self,
         correct_source: MinimalSource,
         retrieved_sources: list[MinimalSource],
     ) -> bool:
+        correct_normalized = self._normalize_path(correct_source.file_path)
+
         for retrieved in retrieved_sources:
-            if correct_source.file_path.endswith(retrieved.file_path):
-                iou = self.calculate_iou(
+            retrieved_normalized = self._normalize_path(retrieved.file_path)
+
+            if correct_normalized != retrieved_normalized:
+                continue
+
+            iou = self.calculate_iou(
                 (correct_source.first_character_index, correct_source.last_character_index),
                 (retrieved.first_character_index, retrieved.last_character_index),
             )
-                if iou >= self.iou_threshold:
-                    return True
+            if iou >= self.iou_threshold:
+                return True
         return False

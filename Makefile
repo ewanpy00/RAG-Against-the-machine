@@ -1,0 +1,54 @@
+.PHONY: install index search evaluate help
+
+DATASET_ANSWERED   = data/datasets/AnsweredQuestions
+DATASET_UNANSWERED = data/datasets/UnansweredQuestions
+OUTPUT_DIR         = data/output/search_results
+K                  = 10
+
+help:
+	@echo "Usage:"
+	@echo "  make install                 Install dependencies"
+	@echo "  make index                   Read, chunk and build BM25 index"
+	@echo "  make search QUERY='...'      Search the index"
+	@echo "  make search-dataset          Run search on all datasets"
+	@echo "  make evaluate                Evaluate recall@k on answered datasets"
+
+install:
+	uv pip install -e .
+
+index:
+	python -m student index
+
+search:
+	python -m student search --query "$(QUERY)" --k $(K)
+
+search-dataset:
+	python -m student search_dataset \
+		--dataset_path $(DATASET_UNANSWERED)/dataset_code_public.json \
+		--save_directory $(OUTPUT_DIR) --k $(K)
+	python -m student search_dataset \
+		--dataset_path $(DATASET_UNANSWERED)/dataset_docs_public.json \
+		--save_directory $(OUTPUT_DIR) --k $(K)
+
+evaluate:
+	python -m student evaluate \
+		--student_results_path $(OUTPUT_DIR)/dataset_code_public.json \
+		--ground_truth_path $(DATASET_ANSWERED)/dataset_code_public.json \
+		--k $(K)
+	python -m student evaluate \
+		--student_results_path $(OUTPUT_DIR)/dataset_docs_public.json \
+		--ground_truth_path $(DATASET_ANSWERED)/dataset_docs_public.json \
+		--k $(K)
+answer:
+	python -m student generation.answerer \
+		--question "$(QUESTION)" \
+		--context "$(CONTEXT)" \
+		--max_new_tokens 50
+
+answer-dataset:
+	python -m student generation.answerer_dataset \
+		--dataset_path $(DATASET_UNANSWERED)/dataset_code_public.json \
+		--save_directory $(OUTPUT_DIR) --max_new_tokens 50
+	python -m student generation.answerer_dataset \
+		--dataset_path $(DATASET_UNANSWERED)/dataset_docs_public.json \
+		--save_directory $(OUTPUT_DIR) --max_new_tokens 50

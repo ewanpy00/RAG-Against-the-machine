@@ -5,6 +5,7 @@ from typing import List
 from tqdm import tqdm
 
 from student.evaluation.evaluator import Evaluator
+from student.generation.answerer import AnswerGenerator
 from student.ingestion.reader import Reader
 from student.ingestion.chunker import Chunker, ChunkerManager
 from student.ingestion.indexer import Indexer
@@ -156,10 +157,73 @@ class CLI:
         recall_at_k = evaluator.evaluate(
             student_results=student_results,
             ground_truth=ground_truth,
-            ks=[k],
+            ks=[1, 3, 5, 10],  # ← все стандартные K
         )
+
+        print("\nEvaluation Results")
+        print("=" * 40)
+        print(f"Questions evaluated: {len(student_results.search_results)}")
+        for k_val in sorted(recall_at_k.keys()):
+            print(f"Recall@{k_val}: {recall_at_k[k_val]:.3f}")
         
         print(f"\nEvaluation Results:")
         print(recall_at_k)
         for k_val, recall in recall_at_k.items():
             print(f"Recall@{k_val}: {recall:.4f}")
+
+    def answer(self, query: str, k: int = 10) -> None:
+        """Answer a single question with LLM."""
+        print("Initializing...")
+        searcher = Searcher()
+        generator = AnswerGenerator()
+        
+        print(f"\n🔍 Searching for: {query}")
+        chunks = searcher.search(query, k=k)
+        print(f"Found {len(chunks)} chunks")
+        
+        print("\n🤖 Generating answer...")
+        answer = generator.generate(query, chunks)
+        
+        print(f"\n💬 Answer:\n{answer}")
+        
+        print(f"\n📚 Sources:")
+        for chunk in chunks[:5]:
+            print(f"  - {chunk.file_path}")
+
+    def answer_dataset(self, dataset_path: str, save_directory: str, k: int = 10) -> None:
+        dataset_path_obj = Path(dataset_path)
+        save_dir = Path(save_directory)
+        
+        try:
+            with dataset_path_obj.open("r", encoding="utf-8") as f:
+                dataset = RagDataset(**json.load(f))
+        except FileNotFoundError:
+            print(f"Error: Dataset not found: {dataset_path}")
+            return
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON: {e}")
+            return
+
+        print(f"Loaded {len(dataset.rag_questions)} questions")
+
+        searcher = Searcher()
+        generator = AnswerGenerator()
+
+        answers = []
+        for question in tqdm(dataset.rag_questions, desc="Answering"):
+            chunks = searcher.search(question.question, k=k)
+            answer = generator.generate(question.question, chunks)
+            answers.append(
+                {
+                    "question_id": question.question_id,
+                    "question": question.question,
+                    "answer": answer,
+                }
+            )
+
+        output_file = save_dir / f"answers_{dataset_path_obj.name}"
+        save_dir.mkdir(parents=True, exist_ok=True)
+        with output_file.open("w", encoding="utf-8") as f:
+            json.dump(answers, f, indent=2)
+        
+        print(f"\nSaved answers to {output_file}")

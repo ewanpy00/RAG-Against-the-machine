@@ -9,3 +9,5 @@ Chunking strategies — fixed-size vs. semantic chunking
 AST parsing для Python (для умного chunking кода)
 Evaluation metrics — Recall@k, Precision, MRR
 HuggingFace transformers — как загрузить и использовать LLM
+
+добавить progress bar для generation answer
