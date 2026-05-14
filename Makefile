@@ -12,6 +12,9 @@ help:
 	@echo "  make search QUERY='...'      Search the index"
 	@echo "  make search-dataset          Run search on all datasets"
 	@echo "  make evaluate                Evaluate recall@k on answered datasets"
+	@echo "  make answer QUERY='...'      Answer the given question"
+	@echo "  make answer-dataset          Answer the given question"
+
 
 install:
 	uv pip install -e .
@@ -41,16 +44,13 @@ evaluate:
 		--k $(K)
 
 answer:
-	uv run python -m student generation.answerer \
-		--question "$(QUESTION)" \
-		--context "$(CONTEXT)" \
-		--max_new_tokens 50
+	uv run python -m student answer $(QUERY) --k 10
 
 answer-dataset:
-	uv run python -m student generation.answerer_dataset \
+	uv run python -m student answer_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_code_public.json \
 		--save_directory $(OUTPUT_DIR) --max_new_tokens 50
-	uv run python -m student generation.answerer_dataset \
+	uv run python -m student answer_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_docs_public.json \
 		--save_directory $(OUTPUT_DIR) --max_new_tokens 50
 

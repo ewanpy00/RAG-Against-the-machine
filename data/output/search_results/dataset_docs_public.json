@@ -967,14 +967,14 @@
           "last_character_index": 37378
         },
         {
-          "file_path": "data/raw/vllm-0.10.1/tests/kernels/quantization/test_int8_kernel.py",
-          "first_character_index": 664,
-          "last_character_index": 1455
-        },
-        {
           "file_path": "data/raw/vllm-0.10.1/tests/kernels/moe/test_triton_moe_ptpc_fp8.py",
           "first_character_index": 806,
           "last_character_index": 1597
+        },
+        {
+          "file_path": "data/raw/vllm-0.10.1/tests/kernels/quantization/test_int8_kernel.py",
+          "first_character_index": 664,
+          "last_character_index": 1455
         },
         {
           "file_path": "data/raw/vllm-0.10.1/vllm/model_executor/layers/fused_moe/moe_align_block_size.py",
@@ -3986,14 +3986,14 @@
           "last_character_index": 2000
         },
         {
-          "file_path": "data/raw/vllm-0.10.1/vllm/v1/worker/gpu_worker.py",
-          "first_character_index": 26696,
-          "last_character_index": 27606
-        },
-        {
           "file_path": "data/raw/vllm-0.10.1/vllm/worker/worker.py",
           "first_character_index": 24273,
           "last_character_index": 25183
+        },
+        {
+          "file_path": "data/raw/vllm-0.10.1/vllm/v1/worker/gpu_worker.py",
+          "first_character_index": 26696,
+          "last_character_index": 27606
         },
         {
           "file_path": "data/raw/vllm-0.10.1/docs/features/quantization/fp8.md",

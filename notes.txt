@@ -10,4 +10,7 @@ AST parsing для Python (для умного chunking кода)
 Evaluation metrics — Recall@k, Precision, MRR
 HuggingFace transformers — как загрузить и использовать LLM
 
-добавить progress bar для generation answer
+добавить progress bar для generation answer and answer-dataset
+fix the output prompt given
+make the Makefile more flexible
+fix answer-dataset
