@@ -23,10 +23,10 @@ search:
 	python -m student search --query "$(QUERY)" --k $(K)
 
 search-dataset:
-	python -m student search_dataset \
+	uv run python -m student search_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_code_public.json \
 		--save_directory $(OUTPUT_DIR) --k $(K)
-	python -m student search_dataset \
+	uv run python -m student search_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_docs_public.json \
 		--save_directory $(OUTPUT_DIR) --k $(K)
 
@@ -39,16 +39,19 @@ evaluate:
 		--student_results_path $(OUTPUT_DIR)/dataset_docs_public.json \
 		--ground_truth_path $(DATASET_ANSWERED)/dataset_docs_public.json \
 		--k $(K)
+
 answer:
-	python -m student generation.answerer \
+	uv run python -m student generation.answerer \
 		--question "$(QUESTION)" \
 		--context "$(CONTEXT)" \
 		--max_new_tokens 50
 
 answer-dataset:
-	python -m student generation.answerer_dataset \
+	uv run python -m student generation.answerer_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_code_public.json \
 		--save_directory $(OUTPUT_DIR) --max_new_tokens 50
-	python -m student generation.answerer_dataset \
+	uv run python -m student generation.answerer_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_docs_public.json \
 		--save_directory $(OUTPUT_DIR) --max_new_tokens 50
+
+clean:
