@@ -100,13 +100,12 @@ class QueryExpander:
         # Tokenize (lowercase, alphanumeric only)
         words = re.findall(r"\b\w+\b", query.lower())
 
-        expanded_terms = list(words)  # original query first
+        expanded_terms = list(words)
 
         for word in words:
             synonyms = self._get_synonyms(word)
             expanded_terms.extend(synonyms[:self.max_synonyms])
 
-        # Deduplicate while preserving order
         seen = set()
         unique_terms = []
         for term in expanded_terms:
