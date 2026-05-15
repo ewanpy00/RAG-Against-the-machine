@@ -14,7 +14,34 @@ help:
 	@echo "  make evaluate                Evaluate recall@k on answered datasets"
 	@echo "  make answer QUERY='...'      Answer the given question"
 	@echo "  make answer-dataset          Answer the given question"
+	@echo "  make clean                   Clean up generated files and caches"
+	@echo "  make debug                   Run search with pdb for debugging"
+	@echo "  make run                     Run example indexing and searching"
 
+
+run:
+	uv run python -m student index
+	uv run python -m student search "How does vLLM handle batching?" --k 5
+
+debug:
+	uv run python -m pdb -m student search "test query"
+
+clean:
+	rm -rf data/processed/
+	rm -rf data/output/
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type d -name ".mypy_cache" -exec rm -rf {} +
+	find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	find . -type f -name "*.pyc" -delete
+
+lint:
+	uv run flake8 .
+	uv run mypy . \
+		--warn-return-any \
+		--warn-unused-ignores \
+		--ignore-missing-imports \
+		--disallow-untyped-defs \
+		--check-untyped-defs
 
 install:
 	uv pip install -e .

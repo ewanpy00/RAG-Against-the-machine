@@ -1,7 +1,10 @@
-from student.models import RagDataset, MinimalSource, StudentSearchResults
+from student.models import MinimalSource, RagDataset, StudentSearchResults
+
 
 class Evaluator:
-    def __init__(self, iou_threshold: float = 0.05):
+    """Computes recall@k by comparing student results against ground truth."""
+
+    def __init__(self, iou_threshold: float = 0.05) -> None:
         self.iou_threshold = iou_threshold
 
     def evaluate(
@@ -10,76 +13,54 @@ class Evaluator:
         ground_truth: RagDataset,
         ks: list[int] = [1, 3, 5, 10],
     ) -> dict[int, float]:
-        recall_at_k = {k: 0.0 for k in ks}
+        """Return recall@k for each k in ks."""
+        recall_at_k: dict[int, float] = {k: 0.0 for k in ks}
         total_questions = len(ground_truth.rag_questions)
-        
-        for question in ground_truth.rag_questions:
-            student_result = next(
-                (res for res in student_results.search_results if res.question_id == question.question_id),
-                None
-            )
-            if not student_result:
-                continue
-            
-            retrieved_sources = student_result.retrieved_sources
-            
-            for k in ks:
-                top_k_sources = retrieved_sources[:k]
-                found_count = sum(
-                    1 for src in question.sources
-                    if self.is_source_found(src, top_k_sources)
-                )
 
-                recall_for_question = found_count / len(question.sources)
-                recall_at_k[k] += recall_for_question
-        
-        recall_at_k = {k: recall / total_questions for k, recall in recall_at_k.items()}
-        return recall_at_k
+        retrieved_by_id = {
+            r.question_id: r.retrieved_sources
+            for r in student_results.search_results
+        }
+
+        for question in ground_truth.rag_questions:
+            retrieved = retrieved_by_id.get(question.question_id, [])
+
+            for k in ks:
+                top_k = retrieved[:k]
+                found = sum(
+                    1 for src in question.sources
+                    if self.is_source_found(src, top_k)
+                )
+                recall_at_k[k] += found / len(question.sources) if question.sources else 0.0
+
+        return {k: v / total_questions for k, v in recall_at_k.items()}
 
     @staticmethod
     def calculate_iou(
         range1: tuple[int, int],
         range2: tuple[int, int],
     ) -> float:
-
+        """Compute intersection-over-union of two character ranges."""
         start1, end1 = range1
         start2, end2 = range2
-        
+
         intersection_start = max(start1, start2)
         intersection_end = min(end1, end2)
-        
+
         if intersection_end <= intersection_start:
             return 0.0
-        
+
         intersection_length = intersection_end - intersection_start
         union_length = (end1 - start1) + (end2 - start2) - intersection_length
-        
         return intersection_length / union_length
-
-    def _normalize_path(self, path: str) -> str:
-        prefixes = ["data/raw/vllm-0.10.1/", "vllm-0.10.1/"]
-        for prefix in prefixes:
-            if path.startswith(prefix):
-                return path[len(prefix):]
-        return path
 
     def is_source_found(
         self,
         correct_source: MinimalSource,
         retrieved_sources: list[MinimalSource],
     ) -> bool:
-        correct_normalized = self._normalize_path(correct_source.file_path)
-
+        """Return True if any retrieved source matches the correct source path."""
         for retrieved in retrieved_sources:
-            retrieved_normalized = self._normalize_path(retrieved.file_path)
-
-            if correct_normalized != retrieved_normalized:
-                continue
-
-            iou = self.calculate_iou(
-                (correct_source.first_character_index, correct_source.last_character_index),
-                (retrieved.first_character_index, retrieved.last_character_index),
-            )
-            if iou >= self.iou_threshold:
+            if correct_source.file_path.endswith(retrieved.file_path):
                 return True
         return False

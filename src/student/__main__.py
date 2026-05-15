@@ -1,7 +1,10 @@
 import fire
+
 from student.cli import CLI
 
-def main():
+
+def main() -> None:
+    """Entry point for the student CLI."""
     fire.Fire(CLI)
 
 

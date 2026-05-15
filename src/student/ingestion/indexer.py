@@ -1,20 +1,23 @@
 import bm25s
 
 from pathlib import Path
+
 from student.models import Chunk
 
 
 class Indexer:
-    def __init__(self, output_dir: Path = Path("data/processed")):
+    """Builds and saves a BM25 index from a list of chunks."""
+
+    def __init__(self, output_dir: Path = Path("data/processed")) -> None:
         self.output_dir = output_dir
 
-    def index_chunks(self, chunks: list[Chunk]):
+    def index_chunks(self, chunks: list[Chunk]) -> None:
+        """Tokenize chunks, build BM25 index, and save to disk."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         if not chunks:
             raise ValueError("Cannot index empty chunks list")
-    
-    
+
         if not all(isinstance(c, Chunk) for c in chunks):
             raise TypeError("All items must be Chunk instances")
 
