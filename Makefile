@@ -44,14 +44,14 @@ evaluate:
 		--k $(K)
 
 answer:
-	uv run python -m student answer $(QUERY) --k 10
+	uv run python -m student answer "$(QUERY)" --k $(K)
 
 answer-dataset:
 	uv run python -m student answer_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_code_public.json \
-		--save_directory $(OUTPUT_DIR) --max_new_tokens 50
+		--save_directory $(OUTPUT_DIR) --k $(K)
 	uv run python -m student answer_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_docs_public.json \
-		--save_directory $(OUTPUT_DIR) --max_new_tokens 50
+		--save_directory $(OUTPUT_DIR) --k $(K)
 
 clean:

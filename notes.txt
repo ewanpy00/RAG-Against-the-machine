@@ -14,3 +14,5 @@ HuggingFace transformers — как загрузить и использоват
 fix the output prompt given
 make the Makefile more flexible
 fix answer-dataset
+
+время генерации на Mac - Generation time: 189.63s (238 tokens)

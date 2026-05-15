@@ -1,5 +1,6 @@
 """LLM-based answer generator using Qwen3-0.6B."""
 
+import time
 import torch
 from typing import List
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -14,6 +15,7 @@ class AnswerGenerator:
         max_context_length: int = 2000,
         max_new_tokens: int = 256,
     ):
+        
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
@@ -22,7 +24,7 @@ class AnswerGenerator:
         self.model.eval()
         self.max_context_length = max_context_length
         self.max_new_tokens = max_new_tokens
-    
+
     def generate(
         self,
         question: str,
@@ -33,7 +35,8 @@ class AnswerGenerator:
         prompt = self._build_prompt(question, context)
         
         inputs = self.tokenizer(prompt, return_tensors="pt")
-        
+
+        t0 = time.perf_counter()
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
@@ -41,10 +44,15 @@ class AnswerGenerator:
                 do_sample=False,
                 pad_token_id=self.tokenizer.eos_token_id,
             )
+        elapsed = time.perf_counter() - t0
 
         new_tokens = outputs[0][inputs["input_ids"].shape[1]:]
         answer = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+        print(f"Generation time: {elapsed:.2f}s ({len(new_tokens)} tokens)")
         
+        # if "<think>" in answer:
+        #     answer = answer.split("<think>", 2)[3].strip()
+
         return answer.strip()
     
     def _build_context(self, chunks: List[Chunk]) -> str:
@@ -83,4 +91,5 @@ class AnswerGenerator:
             messages,
             tokenize=False,
             add_generation_prompt=True,
+            enable_thinking=True,
         )

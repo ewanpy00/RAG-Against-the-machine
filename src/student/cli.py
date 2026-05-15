@@ -183,16 +183,16 @@ class CLI:
         print("Initializing...")
         searcher = Searcher()
         generator = AnswerGenerator()
-        
+
         print(f"\n🔍 Searching for: {query}")
         chunks = searcher.search(query, k=k)
         print(f"Found {len(chunks)} chunks")
-        
+
         print("\n🤖 Generating answer...")
         answer = generator.generate(query, chunks)
-        
+
         print(f"\n💬 Answer:\n{answer}")
-        
+
         print(f"\n📚 Sources:")
         for chunk in chunks[:5]:
             print(f"  - {chunk.file_path}")
@@ -203,7 +203,7 @@ class CLI:
         
         try:
             with dataset_path_obj.open("r", encoding="utf-8") as f:
-                dataset = RagDataset(**json.load(f))
+                dataset = QuestionDataset(**json.load(f))
         except FileNotFoundError:
             print(f"Error: Dataset not found: {dataset_path}")
             return
@@ -218,12 +218,12 @@ class CLI:
 
         answers = []
         for question in tqdm(dataset.rag_questions, desc="Answering"):
-            chunks = searcher.search(question.question, k=k)
-            answer = generator.generate(question.question, chunks)
+            chunks = searcher.search(question.question_str, k=k)
+            answer = generator.generate(question.question_str, chunks)
             answers.append(
                 {
                     "question_id": question.question_id,
-                    "question": question.question,
+                    "question": question.question_str,
                     "answer": answer,
                 }
             )
