@@ -10,7 +10,9 @@ from student.models import Chunk
 
 
 class Searcher:
-    """Loads a BM25 index and retrieves the most relevant chunks for a query."""
+    """Loads a BM25 i
+    ndex and retrieves the most
+    relevant chunks for a query."""
 
     def __init__(
         self,

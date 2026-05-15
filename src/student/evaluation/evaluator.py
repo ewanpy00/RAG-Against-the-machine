@@ -31,7 +31,11 @@ class Evaluator:
                     1 for src in question.sources
                     if self.is_source_found(src, top_k)
                 )
-                recall_at_k[k] += found / len(question.sources) if question.sources else 0.0
+
+                if question.sources:
+                    recall_at_k[k] += found / len(question.sources)
+                else:
+                    recall_at_k[k] += 0.0
 
         return {k: v / total_questions for k, v in recall_at_k.items()}
 
@@ -59,7 +63,8 @@ class Evaluator:
         correct_source: MinimalSource,
         retrieved_sources: list[MinimalSource],
     ) -> bool:
-        """Return True if any retrieved source matches the correct source path."""
+        """Return True if any
+        retrieved source matches the correct source path."""
         for retrieved in retrieved_sources:
             if correct_source.file_path.endswith(retrieved.file_path):
                 return True

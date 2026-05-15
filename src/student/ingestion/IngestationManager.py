@@ -18,7 +18,8 @@ class IngestationManager:
         records = Reader(repo_path=self.repo_path).read()
 
         # Chunk
-        chunk_manager = ChunkerManager(chunk_dir=Path("data/processed/chunks.json"))
+        chunk_manager = ChunkerManager(
+            chunk_dir=Path("data/processed/chunks.json"))
         chunker = Chunker(chunk_size=2000)
         chunks = []
         for record in records:
@@ -33,4 +34,5 @@ class IngestationManager:
         results = searcher.search("def forward")
         print(f"Search results for 'def forward': {len(results)} chunks found")
         for chunk in results[:5]:
-            print(f"Chunk ID: {chunk.chunk_id}, File: {chunk.file_path}, Type: {chunk.file_type}")
+            print(f"Chunk ID: {chunk.chunk_id}, ", end="")
+            print(f"File: {chunk.file_path}, Type: {chunk.file_type}")

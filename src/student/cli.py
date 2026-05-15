@@ -30,12 +30,12 @@ class CLI:
 
         repo_path_obj = Path(repo_path)
         output_dir_obj = Path(output_dir)
-        
+
         print("Reading files...")
         reader = Reader(repo_path=repo_path_obj)
         records = reader.read()
         print(f"Read {len(records)} files")
-        
+
         print("Chunking...")
         chunker = Chunker(chunk_size=max_chunk_size)
         chunks: List[Chunk] = []
@@ -71,7 +71,7 @@ class CLI:
                 f"Range: [{chunk.first_character_index}, "
                 f"{chunk.last_character_index}]"
             )
-            print(f"\nPreview:")
+            print("\nPreview:")
             print(chunk.text[:300])
             print("...\n")
 
@@ -83,7 +83,7 @@ class CLI:
     ) -> None:
         dataset_path_obj = Path(dataset_path)
         save_dir = Path(save_directory)
-        
+
         try:
             with dataset_path_obj.open("r", encoding="utf-8") as f:
                 raw = json.load(f)
@@ -108,7 +108,7 @@ class CLI:
 
         for question in tqdm(questions, desc="Searching"):
             chunks = searcher.search(question.question_str, k=k)
-            
+
             sources = [
                 MinimalSource(
                     file_path=f"{REPO_PREFIX}{chunk.file_path}",
@@ -129,10 +129,10 @@ class CLI:
         output = StudentSearchResults(search_results=search_results, k=k)
         save_dir.mkdir(parents=True, exist_ok=True)
         output_file = save_dir / dataset_path_obj.name
-        
+
         with output_file.open("w", encoding="utf-8") as f:
             json.dump(output.model_dump(), f, indent=2)
-        
+
         print(f"\nSaved student_search_results to {output_file}")
 
     def evaluate(
@@ -150,17 +150,18 @@ class CLI:
         except json.JSONDecodeError as e:
             print(f"Error: Invalid JSON in student results: {e}")
             return
-        
+
         try:
             with open(ground_truth_path, "r", encoding="utf-8") as f:
                 ground_truth = RagDataset(**json.load(f))
         except FileNotFoundError:
-            print(f"Error: Ground truth dataset not found: {ground_truth_path}")
+            print(
+                f"Error: Ground truth dataset not found: {ground_truth_path}")
             return
         except json.JSONDecodeError as e:
             print(f"Error: Invalid JSON in ground truth dataset: {e}")
             return
-        
+
         evaluator = Evaluator()
         recall_at_k = evaluator.evaluate(
             student_results=student_results,
@@ -173,8 +174,8 @@ class CLI:
         print(f"Questions evaluated: {len(student_results.search_results)}")
         for k_val in sorted(recall_at_k.keys()):
             print(f"Recall@{k_val}: {recall_at_k[k_val]:.3f}")
-        
-        print(f"\nEvaluation Results:")
+
+        print("\nEvaluation Results:")
         print(recall_at_k)
         for k_val, recall in recall_at_k.items():
             print(f"Recall@{k_val}: {recall:.4f}")
@@ -193,14 +194,17 @@ class CLI:
 
         print(f"\n💬 Answer:\n{answer}")
 
-        print(f"\n📚 Sources:")
+        print("\n📚 Sources:")
         for chunk in chunks[:5]:
             print(f"  - {chunk.file_path}")
 
-    def answer_dataset(self, dataset_path: str, save_directory: str, k: int = 10) -> None:
+    def answer_dataset(self,
+                       dataset_path: str,
+                       save_directory: str,
+                       k: int = 10) -> None:
         dataset_path_obj = Path(dataset_path)
         save_dir = Path(save_directory)
-        
+
         try:
             with dataset_path_obj.open("r", encoding="utf-8") as f:
                 dataset = QuestionDataset(**json.load(f))
@@ -232,5 +236,5 @@ class CLI:
         save_dir.mkdir(parents=True, exist_ok=True)
         with output_file.open("w", encoding="utf-8") as f:
             json.dump(answers, f, indent=2)
-        
+
         print(f"\nSaved answers to {output_file}")

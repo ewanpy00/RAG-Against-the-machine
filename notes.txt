@@ -1,1 +1,21 @@
 время генерации на Mac - Generation time: 189.63s (238 tokens)
+
+убрать emoji при генерации
+
+проверить readme
+
+Дочинить answer_dataset 
+{
+Посмотри свой текущий код — там багги. Помни:
+
+Input — это search_results (output search_dataset), не raw dataset
+Используй StudentSearchResults модель, не RagDataset
+Output — это StudentSearchResultsAndAnswer
+Имя файла — то же, что у входного 
+}
+
+проверить lint в конце
+
+check edge cases/add error handling
+
+final check

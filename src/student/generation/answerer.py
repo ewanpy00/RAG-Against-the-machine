@@ -27,7 +27,8 @@ class AnswerGenerator:
         self.max_new_tokens = max_new_tokens
 
     def generate(self, question: str, chunks: list[Chunk]) -> str:
-        """Generate an answer to a question given retrieved chunks as context."""
+        """Generate an answer to a question
+          given retrieved chunks as context."""
         context = self._build_context(chunks)
         prompt = self._build_prompt(question, context)
 
@@ -67,7 +68,8 @@ class AnswerGenerator:
                     "about the vLLM library based on provided context. "
                     "Use only the information from the context. "
                     "Be concise and accurate. "
-                    "If the context does not contain the answer, say you don't know. "
+                    "If the context does not contain"
+                    " the answer, say you don't know. "
                     "Answer should be <= 100 words."
                 ),
             },

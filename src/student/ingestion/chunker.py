@@ -51,7 +51,9 @@ class Chunker:
             chunks: list[Chunk] = []
 
             for node in ast.iter_child_nodes(tree):
-                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                if not isinstance(
+                        node,
+                        (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                     continue
 
                 start_line = node.lineno - 1
@@ -79,12 +81,13 @@ class Chunker:
                 else:
                     for i in range(0, len(node_text), self.chunk_size):
                         abs_first = first_char + i
-                        abs_last = min(first_char + i + self.chunk_size, last_char)
+                        abs_l = min(
+                            first_char + i + self.chunk_size, last_char)
                         chunks.append(Chunk(
-                            chunk_id=f"{record.filepath}:{abs_first}-{abs_last}",
+                            chunk_id=f"{record.filepath}:{abs_first}-{abs_l}",
                             file_path=record.filepath,
                             first_character_index=abs_first,
-                            last_character_index=abs_last,
+                            last_character_index=abs_l,
                             text=node_text[i:i + self.chunk_size],
                             file_type=record.filetype,
                         ))

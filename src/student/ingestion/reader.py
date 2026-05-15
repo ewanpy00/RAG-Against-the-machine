@@ -12,7 +12,8 @@ class Reader:
     def read(self) -> list[FileRecord]:
         """Recursively read all files under repo_path."""
         if not self.repo_path.exists():
-            raise FileNotFoundError(f"Repository path {self.repo_path} does not exist")
+            raise FileNotFoundError(
+                f"Repository path {self.repo_path} does not exist")
 
         records = []
         for f in self.repo_path.rglob("*"):
