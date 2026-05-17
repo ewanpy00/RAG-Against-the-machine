@@ -14,10 +14,12 @@ Output — это StudentSearchResultsAndAnswer
 Имя файла — то же, что у входного 
 }
 
-bonus: add caching method and think about embedding search
+bonus: caching + embedding search
 
 проверить lint в конце
 
 check edge cases/add error handling
+FileNotFoundError: Index not found: data/processed/bm25_index. Run 'index' command first. - error handling
+
 
 final check
