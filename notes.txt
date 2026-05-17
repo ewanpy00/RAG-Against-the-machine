@@ -23,3 +23,5 @@ FileNotFoundError: Index not found: data/processed/bm25_index. Run 'index' comma
 
 
 final check
+
+ADD IMBEDDING search

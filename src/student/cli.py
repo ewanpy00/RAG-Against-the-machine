@@ -26,6 +26,8 @@ class CLI:
         repo_path: str = "data/raw/vllm-0.10.1",
         output_dir: str = "data/processed",
         max_chunk_size: int = 2000,
+        build_embeddings: bool = False,
+
     ) -> None:
 
         repo_path_obj = Path(repo_path)
@@ -42,6 +44,12 @@ class CLI:
         for record in tqdm(records, desc="Chunking"):
             chunks.extend(chunker.chunk_record(record))
         print(f"Created {len(chunks)} chunks")
+
+        if build_embeddings:
+            print("\nBuilding embedding index...")
+            from student.retrieval.embedding_indexer import EmbeddingIndexer
+            emb_indexer = EmbeddingIndexer()
+            emb_indexer.build_index(chunks, output_dir_obj)
 
         print("Saving chunks...")
         chunk_manager = ChunkerManager(
