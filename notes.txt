@@ -1,10 +1,7 @@
-время генерации на Mac - Generation time: 189.63s (238 tokens)
-
 убрать emoji при генерации
 
 проверить readme
 
-Дочинить answer_dataset 
 {
 Посмотри свой текущий код — там багги. Помни:
 
@@ -14,14 +11,11 @@ Output — это StudentSearchResultsAndAnswer
 Имя файла — то же, что у входного 
 }
 
-bonus: caching + embedding search
-
 проверить lint в конце
 
 check edge cases/add error handling
 FileNotFoundError: Index not found: data/processed/bm25_index. Run 'index' command first. - error handling
 
-
-final check
-
 зачем в evaluate k
+
+сравнить evaluate при embedding hybrid и bm25

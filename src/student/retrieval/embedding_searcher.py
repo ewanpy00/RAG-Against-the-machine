@@ -17,6 +17,8 @@ class EmbeddingSearcher:
         chunks_path: Path = Path("data/processed/chunks.json"),
         meta_path: Path = Path("data/processed/embeddings_meta.json"),
         device: str = None,
+        use_cache: bool = False,
+        cache_dir: Path = Path("data/cache")
     ):
         if not embeddings_path.exists():
             raise FileNotFoundError(
@@ -59,9 +61,50 @@ class EmbeddingSearcher:
             f"Mismatch: {len(self.chunks)} chunks vs {self.embeddings.shape[0]} embeddings"
         )
 
+        self.use_cache = use_cache
+        if use_cache:
+            model_name_safe = meta["model_name"].replace("/", "_")
+            self.cache_dir = cache_dir / model_name_safe
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            print(f"Query cache enabled: {self.cache_dir}")
+        else:
+            self.cache_dir = None
+
+    def _normalize_query(self, query: str) -> str:
+        """Normalize query for consistent caching."""
+        return query.strip().lower()
+
+    def _query_cache_path(self, query: str) -> Path:
+        """Get cache file path for query."""
+        import hashlib
+        normalized = self._normalize_query(query)
+        query_hash = hashlib.md5(normalized.encode()).hexdigest()
+        return self.cache_dir / f"{query_hash}.npy"
+
+    def _encode_query(self, query: str) -> np.ndarray:
+        """Encode query with optional disk caching."""
+
+        if self.use_cache:
+            cache_path = self._query_cache_path(query)
+
+            if cache_path.exists():
+                return np.load(cache_path)
+
+        embedding = self.model.encode(
+            [query],
+            normalize_embeddings=True,
+            convert_to_numpy=True,
+        )[0]
+
+        if self.use_cache:
+            cache_path = self._query_cache_path(query)
+            np.save(cache_path, embedding)
+
+        return embedding
+
     def search(self, query: str, k: int = 10) -> List[Chunk]:
         """Retrieve top-K chunks by cosine similarity.
-        
+ 
         Since embeddings are normalized, dot product = cosine similarity.
         """
         if not query or not query.strip():
@@ -69,32 +112,24 @@ class EmbeddingSearcher:
         if k < 1:
             raise ValueError("k must be >= 1")
 
-        query_embedding = self.model.encode(
-            [query],
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-        )[0]
+        query_embedding = self._encode_query(query)
 
         similarities = self.embeddings @ query_embedding
 
         top_k_indices = np.argpartition(-similarities, kth=min(k, len(similarities) - 1))[:k]
         top_k_indices = top_k_indices[np.argsort(-similarities[top_k_indices])]
-        
+
         return [self.chunks[idx] for idx in top_k_indices]
-    
+
     def search_with_scores(self, query: str, k: int = 10) -> List[tuple]:
         """Same as search but returns (chunk, score) tuples."""
         if not query or not query.strip():
             raise ValueError("Query cannot be empty")
-        
-        query_embedding = self.model.encode(
-            [query],
-            normalize_embeddings=True,
-            convert_to_numpy=True,
-        )[0]
-        
+
+        query_embedding = self._encode_query(query)
+
         similarities = self.embeddings @ query_embedding
         top_k_indices = np.argpartition(-similarities, kth=min(k, len(similarities) - 1))[:k]
         top_k_indices = top_k_indices[np.argsort(-similarities[top_k_indices])]
-        
+
         return [(self.chunks[idx], float(similarities[idx])) for idx in top_k_indices]

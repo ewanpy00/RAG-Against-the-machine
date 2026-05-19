@@ -91,12 +91,12 @@ class CLI:
         retriever: str = "bm25",
     ) -> None:
         
-        if retriever is "bm25":
+        if retriever == "bm25":
             searcher = Searcher()
-        elif retriever is "embedding":
+        elif retriever == "embedding":
             from student.retrieval.embedding_searcher import EmbeddingSearcher
             searcher = EmbeddingSearcher()
-        elif retriever is "hybrid":
+        elif retriever == "hybrid":
             from student.retrieval.embedding_searcher import EmbeddingSearcher
             from student.retrieval.hybrid_searcher import HybridSearcher
             searcher = HybridSearcher(embedding_searcher=EmbeddingSearcher())
@@ -162,7 +162,6 @@ class CLI:
         self,
         student_results_path: str,
         ground_truth_path: str,
-        k: int = 10,
     ) -> None:
         try:
             with open(student_results_path, "r", encoding="utf-8") as f:

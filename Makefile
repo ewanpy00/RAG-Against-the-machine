@@ -5,6 +5,8 @@ DATASET_UNANSWERED = data/datasets/UnansweredQuestions
 OUTPUT_DIR         = data/output/search_results
 K                  = 10
 RETRIEVER          = bm25
+EMBEDDING		   = False
+CHUNK_SIZE 		   = 2000
 
 help:
 	@echo "Usage:"
@@ -32,10 +34,12 @@ debug:
 clean:
 	rm -rf data/processed/
 	rm -rf data/output/
+	rm -rf data/cache/
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
+	
 
 lint:
 	uv run flake8 .
@@ -50,7 +54,7 @@ install:
 	uv pip install -e .
 
 index:
-	uv run python -m student index
+	uv run python -m student index --build_embeddings $(EMBEDDING) --max_chunk_size $(CHUNK_SIZE)
 
 search:
 	uv run python -m student search --query "$(QUERY)" --k $(K)
@@ -66,12 +70,10 @@ search-dataset:
 evaluate:
 	uv run python -m student evaluate \
 		--student_results_path $(OUTPUT_DIR)/dataset_code_public.json \
-		--ground_truth_path $(DATASET_ANSWERED)/dataset_code_public.json \
-		--k $(K)
+		--ground_truth_path $(DATASET_ANSWERED)/dataset_code_public.json
 	uv run python -m student evaluate \
 		--student_results_path $(OUTPUT_DIR)/dataset_docs_public.json \
-		--ground_truth_path $(DATASET_ANSWERED)/dataset_docs_public.json \
-		--k $(K)
+		--ground_truth_path $(DATASET_ANSWERED)/dataset_docs_public.json
 
 answer:
 	uv run python -m student answer "$(QUERY)" --k $(K)

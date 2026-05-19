@@ -17,7 +17,7 @@ class EmbeddingIndexer:
         self,
         model_name: str = "BAAI/bge-small-en-v1.5",
         batch_size: int = 32,
-        device: str = None,
+        device: str = None
     ):
         if device is None:
             if torch.cuda.is_available():
@@ -29,6 +29,7 @@ class EmbeddingIndexer:
 
         self.device = device
         self.batch_size = batch_size
+
 
         print(f"Loading embedding model: {model_name} on {device}")
         self.model = SentenceTransformer(model_name, device=device)

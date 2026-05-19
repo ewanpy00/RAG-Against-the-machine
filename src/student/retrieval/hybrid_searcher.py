@@ -57,6 +57,5 @@ class HybridSearcher:
             key=lambda cid: rrf_scores[cid],
             reverse=True,
         )
-        
-        # Return top-K
+
         return [all_chunks[cid] for cid in ranked_ids[:k]]
