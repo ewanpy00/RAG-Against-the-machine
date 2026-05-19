@@ -53,7 +53,7 @@ class EmbeddingIndexer:
             convert_to_numpy=True,
             normalize_embeddings=True,
         )
-        
+        print(f"Computed embeddings with shape: {embeddings.shape}")
         embeddings_path = output_dir / "embeddings.npy"
         np.save(embeddings_path, embeddings)
 

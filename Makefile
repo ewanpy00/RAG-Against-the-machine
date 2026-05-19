@@ -4,19 +4,22 @@ DATASET_ANSWERED   = data/datasets/AnsweredQuestions
 DATASET_UNANSWERED = data/datasets/UnansweredQuestions
 OUTPUT_DIR         = data/output/search_results
 K                  = 10
+RETRIEVER          = bm25
 
 help:
 	@echo "Usage:"
-	@echo "  make install                 Install dependencies"
-	@echo "  make index                   Read, chunk and build BM25 index"
-	@echo "  make search QUERY='...'      Search the index"
-	@echo "  make search-dataset          Run search on all datasets"
-	@echo "  make evaluate                Evaluate recall@k on answered datasets"
-	@echo "  make answer QUERY='...'      Answer the given question"
-	@echo "  make answer-dataset          Answer the given question"
-	@echo "  make clean                   Clean up generated files and caches"
-	@echo "  make debug                   Run search with pdb for debugging"
-	@echo "  make run                     Run example indexing and searching"
+	@echo "  make install                            Install dependencies"
+	@echo "  make index                              Read, chunk and build BM25 index"
+	@echo "  make search QUERY='...'                 Search the index"
+	@echo "  make search-dataset                     Run search on all datasets"
+	@echo "  make search-dataset RETRIEVER=embedding Run search with embedding retriever"
+	@echo "  make search-dataset RETRIEVER=hybrid    Run search with hybrid retriever"
+	@echo "  make evaluate                           Evaluate recall@k on answered datasets"
+	@echo "  make answer QUERY='...'                 Answer the given question"
+	@echo "  make answer-dataset                     Answer questions on all datasets"
+	@echo "  make clean                              Clean up generated files and caches"
+	@echo "  make debug                              Run search with pdb for debugging"
+	@echo "  make run                                Run example indexing and searching"
 
 
 run:
@@ -50,15 +53,15 @@ index:
 	uv run python -m student index
 
 search:
-	python -m student search --query "$(QUERY)" --k $(K)
+	uv run python -m student search --query "$(QUERY)" --k $(K)
 
 search-dataset:
 	uv run python -m student search_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_code_public.json \
-		--save_directory $(OUTPUT_DIR) --k $(K)
+		--save_directory $(OUTPUT_DIR) --k $(K) --retriever $(RETRIEVER)
 	uv run python -m student search_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_docs_public.json \
-		--save_directory $(OUTPUT_DIR) --k $(K)
+		--save_directory $(OUTPUT_DIR) --k $(K) --retriever $(RETRIEVER)
 
 evaluate:
 	uv run python -m student evaluate \
@@ -76,9 +79,7 @@ answer:
 answer-dataset:
 	uv run python -m student answer_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_code_public.json \
-		--save_directory $(OUTPUT_DIR) --k $(K)
+		--save_directory $(OUTPUT_DIR) --k $(K) --retriever $(RETRIEVER)
 	uv run python -m student answer_dataset \
 		--dataset_path $(DATASET_UNANSWERED)/dataset_docs_public.json \
-		--save_directory $(OUTPUT_DIR) --k $(K)
-
-clean:
+		--save_directory $(OUTPUT_DIR) --k $(K) --retriever $(RETRIEVER)

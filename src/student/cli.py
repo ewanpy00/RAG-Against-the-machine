@@ -88,7 +88,22 @@ class CLI:
         dataset_path: str,
         save_directory: str,
         k: int = 10,
+        retriever: str = "bm25",
     ) -> None:
+        
+        if retriever is "bm25":
+            searcher = Searcher()
+        elif retriever is "embedding":
+            from student.retrieval.embedding_searcher import EmbeddingSearcher
+            searcher = EmbeddingSearcher()
+        elif retriever is "hybrid":
+            from student.retrieval.embedding_searcher import EmbeddingSearcher
+            from student.retrieval.hybrid_searcher import HybridSearcher
+            searcher = HybridSearcher(embedding_searcher=EmbeddingSearcher())
+        else:
+            print(f"Error: Invalid retriever type: {retriever}")
+            return
+
         dataset_path_obj = Path(dataset_path)
         save_dir = Path(save_directory)
 
