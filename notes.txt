@@ -1,25 +1,7 @@
-проверить readme
-
-{
-Посмотри свой текущий код — там багги. Помни:
-
-Input — это search_results (output search_dataset), не raw dataset
-Используй StudentSearchResults модель, не RagDataset
-Output — это StudentSearchResultsAndAnswer
-Имя файла — то же, что у входного 
-}
-
 проверить lint в конце
 
 check edge cases/add error handling
-FileNotFoundError: Index not found: data/processed/bm25_index. Run 'index' command first. - error handling
-
-зачем в evaluate k
 
 как считается call@k
-
-ошибка make evaluate до search-dataset
-
-ошибка - search-dataset hubrid до index с embeddings
 
 как работает кэширование 
