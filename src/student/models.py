@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict, Field
+import uuid
+
+from pydantic import BaseModel, Field
 
 
 class Document(BaseModel):
@@ -36,46 +38,44 @@ class MinimalSource(BaseModel):
     last_character_index: int
 
 
-class Answer(BaseModel):
+class UnansweredQuestion(BaseModel):
+    """A question without a ground-truth answer."""
+
+    question_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    question: str
+
+
+class AnsweredQuestion(UnansweredQuestion):
     """A question with its ground-truth answer and sources."""
 
-    model_config = ConfigDict(populate_by_name=True)
-
-    question_id: str
-    question_str: str = Field(alias="question")
-    answer: str
     sources: list[MinimalSource] = []
+    answer: str
 
 
 class RagDataset(BaseModel):
     """Dataset of answered questions used for evaluation."""
 
-    rag_questions: list[Answer]
-
-
-class Question(BaseModel):
-    """A question without a ground-truth answer."""
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    question_id: str
-    question_str: str = Field(alias="question")
+    rag_questions: list[AnsweredQuestion]
 
 
 class QuestionDataset(BaseModel):
     """Dataset of unanswered questions."""
 
-    rag_questions: list[Question]
+    rag_questions: list[UnansweredQuestion]
 
 
 class MinimalSearchResults(BaseModel):
     """Retrieved sources for a single question."""
 
-    model_config = ConfigDict(populate_by_name=True)
-
     question_id: str
-    question_str: str = Field(alias="question")
+    question: str
     retrieved_sources: list[MinimalSource]
+
+
+class MinimalAnswer(MinimalSearchResults):
+    """Search result enriched with a generated answer."""
+
+    answer: str
 
 
 class StudentSearchResults(BaseModel):
@@ -83,3 +83,9 @@ class StudentSearchResults(BaseModel):
 
     search_results: list[MinimalSearchResults]
     k: int
+
+
+class StudentSearchResultsAndAnswer(StudentSearchResults):
+    """Search output enriched with generated answers."""
+
+    search_results: list[MinimalAnswer]  # type: ignore[assignment]

@@ -1,6 +1,7 @@
 import json
+import time
 from pathlib import Path
-from typing import List
+from typing import Any
 
 from tqdm import tqdm
 
@@ -15,9 +16,27 @@ from student.models import (
     RagDataset,
     QuestionDataset,
     StudentSearchResults,
+    StudentSearchResultsAndAnswer,
     MinimalSearchResults,
+    MinimalAnswer,
     MinimalSource,
 )
+
+
+def _load_json(path: Path, label: str) -> Any | None:
+    """Load and parse a JSON file with clear error messages."""
+    if not path.exists():
+        print(f"Error: {label} not found: {path}")
+        return None
+    if path.stat().st_size == 0:
+        print(f"Error: {label} is empty: {path}")
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Error: {label} contains invalid JSON: {e}")
+        return None
 
 
 class CLI:
@@ -27,10 +46,13 @@ class CLI:
         output_dir: str = "data/processed",
         max_chunk_size: int = 2000,
         build_embeddings: bool = False,
-
     ) -> None:
-
+        """Index the repository into a searchable BM25 index."""
         repo_path_obj = Path(repo_path)
+        if not repo_path_obj.exists():
+            print(f"Error: Repository path not found: {repo_path}")
+            return
+
         output_dir_obj = Path(output_dir)
 
         print("Reading files...")
@@ -40,7 +62,7 @@ class CLI:
 
         print("Chunking...")
         chunker = Chunker(chunk_size=max_chunk_size)
-        chunks: List[Chunk] = []
+        chunks: list[Chunk] = []
         for record in tqdm(records, desc="Chunking"):
             chunks.extend(chunker.chunk_record(record))
         print(f"Created {len(chunks)} chunks")
@@ -64,10 +86,16 @@ class CLI:
         print(f"\nIngestion complete! Indices saved under {output_dir}/")
 
     def search(self, query: str, k: int = 10) -> None:
-        searcher = Searcher()
+        """Search the BM25 index for a single query."""
+        try:
+            searcher = Searcher()
+        except FileNotFoundError as e:
+            print(f"Error: BM25 index not found. Run 'make index' first.\n  {e}")
+            return
+
         results = searcher.search(query, k=k)
 
-        print(f"\n🔍 Query: {query}")
+        print(f"\nQuery: {query}")
         print(f"Found {len(results)} results\n")
 
         for i, chunk in enumerate(results, 1):
@@ -90,47 +118,72 @@ class CLI:
         k: int = 10,
         retriever: str = "bm25",
     ) -> None:
-        
-        if retriever == "bm25":
-            searcher = Searcher()
-        elif retriever == "embedding":
-            from student.retrieval.embedding_searcher import EmbeddingSearcher
-            searcher = EmbeddingSearcher()
-        elif retriever == "hybrid":
-            from student.retrieval.embedding_searcher import EmbeddingSearcher
-            from student.retrieval.hybrid_searcher import HybridSearcher
-            searcher = HybridSearcher(embedding_searcher=EmbeddingSearcher())
-        else:
-            print(f"Error: Invalid retriever type: {retriever}")
+        """Run retrieval over a dataset of questions and save results."""
+        start_time = time.time()
+
+        try:
+            if retriever == "bm25":
+                searcher = Searcher()
+            elif retriever == "embedding":
+                from student.retrieval.embedding_searcher import EmbeddingSearcher
+                searcher = EmbeddingSearcher(use_cache=True)
+            elif retriever == "hybrid":
+                from student.retrieval.embedding_searcher import EmbeddingSearcher
+                from student.retrieval.hybrid_searcher import HybridSearcher
+                searcher = HybridSearcher(
+                    embedding_searcher=EmbeddingSearcher(use_cache=True)
+                )
+            else:
+                print(
+                    f"Error: Invalid retriever type '{retriever}'. "
+                    f"Choose: bm25, embedding, hybrid"
+                )
+                return
+        except FileNotFoundError as e:
+            if "embeddings" in str(e).lower():
+                print(
+                    f"Error: Embedding index not found. "
+                    f"Run 'make index build_embeddings=True' first.\n  {e}"
+                )
+            else:
+                print(f"Error: Index not found. Run 'make index' first.\n  {e}")
             return
 
         dataset_path_obj = Path(dataset_path)
         save_dir = Path(save_directory)
 
-        try:
-            with dataset_path_obj.open("r", encoding="utf-8") as f:
-                raw = json.load(f)
-        except FileNotFoundError:
-            print(f"Error: Dataset not found: {dataset_path}")
-            return
-        except json.JSONDecodeError as e:
-            print(f"Error: Invalid JSON: {e}")
+        raw = _load_json(dataset_path_obj, "Dataset")
+        if raw is None:
             return
 
-        if "rag_questions" in raw:
-            questions = QuestionDataset(**raw).rag_questions
-        else:
-            questions = StudentSearchResults(**raw).search_results
+        if isinstance(raw, list):
+            print(
+                f"Error: Dataset file contains a plain list — expected an object "
+                f"with 'rag_questions' key.\n"
+                f"  Got {len(raw)} items. Check that you're pointing at the right file."
+            )
+            return
+
+        try:
+            if "rag_questions" in raw:
+                questions = QuestionDataset(**raw).rag_questions
+            else:
+                questions = StudentSearchResults(**raw).search_results
+        except Exception as e:
+            print(f"Error: Failed to parse dataset: {e}")
+            return
+
+        if not questions:
+            print("Error: Dataset contains no questions.")
+            return
 
         print(f"Loaded {len(questions)} questions")
-
-        searcher = Searcher()
 
         search_results = []
         REPO_PREFIX = "data/raw/vllm-0.10.1/"
 
         for question in tqdm(questions, desc="Searching"):
-            chunks = searcher.search(question.question_str, k=k)
+            chunks = searcher.search(question.question, k=k)
 
             sources = [
                 MinimalSource(
@@ -144,7 +197,7 @@ class CLI:
             search_results.append(
                 MinimalSearchResults(
                     question_id=question.question_id,
-                    question_str=question.question_str,
+                    question=question.question,
                     retrieved_sources=sources,
                 )
             )
@@ -156,32 +209,59 @@ class CLI:
         with output_file.open("w", encoding="utf-8") as f:
             json.dump(output.model_dump(), f, indent=2)
 
+        elapsed = time.time() - start_time
         print(f"\nSaved student_search_results to {output_file}")
+        print(
+            f"Total time: {elapsed:.2f}s "
+            f"({elapsed / len(questions):.3f}s per question)"
+        )
 
     def evaluate(
         self,
         student_results_path: str,
         ground_truth_path: str,
     ) -> None:
-        try:
-            with open(student_results_path, "r", encoding="utf-8") as f:
-                student_results = StudentSearchResults(**json.load(f))
-        except FileNotFoundError:
-            print(f"Error: Student results not found: {student_results_path}")
+        """Evaluate recall@k of search results against ground truth."""
+        raw = _load_json(Path(student_results_path), "Student results")
+        if raw is None:
             return
-        except json.JSONDecodeError as e:
-            print(f"Error: Invalid JSON in student results: {e}")
+
+        if isinstance(raw, list):
+            print(
+                "Error: Student results file contains a plain list — expected an "
+                "object with 'search_results' key.\n"
+                "  Run 'make search-dataset' first to generate the correct format."
+            )
             return
 
         try:
-            with open(ground_truth_path, "r", encoding="utf-8") as f:
-                ground_truth = RagDataset(**json.load(f))
-        except FileNotFoundError:
+            student_results = StudentSearchResults(**raw)
+        except Exception as e:
             print(
-                f"Error: Ground truth dataset not found: {ground_truth_path}")
+                f"Error: Student results file has wrong structure.\n"
+                f"  Run 'make search-dataset' to regenerate it.\n  {e}"
+            )
             return
-        except json.JSONDecodeError as e:
-            print(f"Error: Invalid JSON in ground truth dataset: {e}")
+
+        if not student_results.search_results:
+            print("Error: Student results contain no entries.")
+            return
+
+        raw_gt = _load_json(Path(ground_truth_path), "Ground truth dataset")
+        if raw_gt is None:
+            return
+
+        if isinstance(raw_gt, list):
+            print(
+                "Error: Ground truth file contains a plain list — expected an "
+                "object with 'rag_questions' key."
+            )
+            return
+
+        try:
+            ground_truth = RagDataset(**raw_gt)
+        except Exception as e:
+            print(f"Error: Failed to parse ground truth dataset: {e}")
             return
 
         evaluator = Evaluator()
@@ -195,68 +275,111 @@ class CLI:
         print("=" * 40)
         print(f"Questions evaluated: {len(student_results.search_results)}")
         for k_val in sorted(recall_at_k.keys()):
-            print(f"Recall@{k_val}: {recall_at_k[k_val]:.3f}")
-
-        print("\nEvaluation Results:")
-        print(recall_at_k)
-        for k_val, recall in recall_at_k.items():
-            print(f"Recall@{k_val}: {recall:.4f}")
+            print(f"Recall@{k_val}: {recall_at_k[k_val]:.4f}")
 
     def answer(self, query: str, k: int = 10) -> None:
+        """Answer a single question using retrieved context."""
         print("Initializing...")
-        searcher = Searcher()
+        try:
+            searcher = Searcher()
+        except FileNotFoundError as e:
+            print(f"Error: BM25 index not found. Run 'make index' first.\n  {e}")
+            return
+
         generator = AnswerGenerator()
 
-        print(f"\n🔍 Searching for: {query}")
+        print(f"\nSearching for: {query}")
         chunks = searcher.search(query, k=k)
         print(f"Found {len(chunks)} chunks")
 
-        print("\n🤖 Generating answer...")
+        print("\nGenerating answer...")
         answer = generator.generate(query, chunks)
 
-        print(f"\n💬 Answer:\n{answer}")
+        print(f"\nAnswer:\n{answer}")
 
-        print("\n📚 Sources:")
+        print("\nSources:")
         for chunk in chunks[:5]:
             print(f"  - {chunk.file_path}")
 
-    def answer_dataset(self,
-                       dataset_path: str,
-                       save_directory: str,
-                       k: int = 10) -> None:
-        dataset_path_obj = Path(dataset_path)
-        save_dir = Path(save_directory)
+    def answer_dataset(
+        self,
+        student_search_results_path: str,
+        save_directory: str,
+        k: int = 10,
+    ) -> None:
+        """Generate answers for existing search results and save enriched output."""
+        raw = _load_json(Path(student_search_results_path), "Search results")
+        if raw is None:
+            return
+
+        if isinstance(raw, list):
+            print(
+                "Error: Expected a search results object, not a list. "
+                "Run 'make search-dataset' first."
+            )
+            return
 
         try:
-            with dataset_path_obj.open("r", encoding="utf-8") as f:
-                dataset = QuestionDataset(**json.load(f))
-        except FileNotFoundError:
-            print(f"Error: Dataset not found: {dataset_path}")
-            return
-        except json.JSONDecodeError as e:
-            print(f"Error: Invalid JSON: {e}")
+            search_results = StudentSearchResults(**raw)
+        except Exception as e:
+            print(f"Error: Failed to parse search results: {e}")
             return
 
-        print(f"Loaded {len(dataset.rag_questions)} questions")
+        if not search_results.search_results:
+            print("Error: Search results are empty.")
+            return
 
-        searcher = Searcher()
-        generator = AnswerGenerator()
+        print(f"Loaded {len(search_results.search_results)} questions")
 
-        answers = []
-        for question in tqdm(dataset.rag_questions, desc="Answering"):
-            chunks = searcher.search(question.question_str, k=k)
-            answer = generator.generate(question.question_str, chunks)
-            answers.append(
-                {
-                    "question_id": question.question_id,
-                    "question": question.question_str,
-                    "answer": answer,
-                }
-            )
+        try:
+            generator = AnswerGenerator()
+        except Exception as e:
+            print(f"Error: Failed to initialize answer generator: {e}")
+            return
 
-        output_file = save_dir / f"answers_{dataset_path_obj.name}"
+        answers: list[MinimalAnswer] = []
+
+        for result in tqdm(search_results.search_results, desc="Answering"):
+            chunks: list[Chunk] = []
+            for source in result.retrieved_sources[:k]:
+                try:
+                    with open(source.file_path, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    text = content[
+                        source.first_character_index:source.last_character_index
+                    ]
+                    chunks.append(Chunk(
+                        chunk_id=(
+                            f"{source.file_path}:"
+                            f"{source.first_character_index}-"
+                            f"{source.last_character_index}"
+                        ),
+                        file_path=source.file_path,
+                        first_character_index=source.first_character_index,
+                        last_character_index=source.last_character_index,
+                        text=text,
+                        file_type=Path(source.file_path).suffix,
+                    ))
+                except OSError:
+                    continue
+
+            answer_text = generator.generate(result.question, chunks)
+            answers.append(MinimalAnswer(
+                question_id=result.question_id,
+                question=result.question,
+                retrieved_sources=result.retrieved_sources,
+                answer=answer_text,
+            ))
+
+        output = StudentSearchResultsAndAnswer(
+            search_results=answers,
+            k=search_results.k,
+        )
+        save_dir = Path(save_directory)
         save_dir.mkdir(parents=True, exist_ok=True)
+        output_file = save_dir / Path(student_search_results_path).name
+
         with output_file.open("w", encoding="utf-8") as f:
-            json.dump(answers, f, indent=2)
+            json.dump(output.model_dump(), f, indent=2)
 
         print(f"\nSaved answers to {output_file}")

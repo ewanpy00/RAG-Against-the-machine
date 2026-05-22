@@ -23,7 +23,7 @@ The system was built incrementally with a walking-skeleton approach: first a min
 ## Instructions
 
 ### Prerequisites
-- Python 3.10+
+- Python 3.13+
 - `uv` package manager
 - vLLM repository placed at `data/raw/vllm-0.10.1/`
 
@@ -100,19 +100,28 @@ Query → Searcher → top-K Chunks → AnswerGenerator (LLM) → Answer
 
 ## Chunking strategy
 
-**Approach:** Naive fixed-size chunking with a configurable maximum size (default 2000 characters).
+**Two strategies depending on file type:**
+
+- **Python files (`.py`)** — AST-based chunking: the file is parsed with `ast.parse` and split at top-level `def`, `async def`, and `class` boundaries. If a node exceeds 2000 characters it is further split by fixed size.
+- **All other files (`.md`, `.txt`)** — Fixed-size chunking: the content is sliced into consecutive windows of `chunk_size` characters.
 
 ```python
+# Python: AST split at top-level nodes
+for node in ast.iter_child_nodes(tree):
+    if isinstance(node, (FunctionDef, AsyncFunctionDef, ClassDef)):
+        ...
+
+# Markdown / text: fixed window
 for i in range(0, len(content), chunk_size):
     chunk = content[i:i + chunk_size]
 ```
 
 **Rationale:**
-- Simple, predictable, and respects the 2000-character limit from Subject (V.4)
-- Easy to verify: `chunk.text length == last_char_index - first_char_index`
-- Works for both Python code and Markdown documentation in a uniform way
+- AST chunking keeps functions and classes intact, which improves BM25 recall for code questions
+- Fixed-size chunking is simple and predictable for prose documentation
+- Both strategies respect the 2000-character limit from Subject (V.4), configurable via `--max_chunk_size`
 
-**Trade-off:** Naive chunking can split functions or sections mid-content. Smart chunking strategies (AST-based for Python, header-based for Markdown) were considered but deferred — the baseline already met Subject thresholds. Future work: see "Challenges faced" below.
+**Trade-off:** AST chunking skips module-level code (imports, constants) that is not inside a function or class.
 
 **Whitelist of indexed extensions:** `.py`, `.md`, `.txt`.
 
@@ -257,7 +266,7 @@ Code, design decisions, and bug fixes were ultimately authored by the project ow
 ```bash
 $ uv run python -m student search "How does vLLM handle continuous batching?" --k 5
 
-🔍 Query: How does vLLM handle continuous batching?
+Query: How does vLLM handle continuous batching?
 Found 5 results
 
 ============================================================
@@ -301,17 +310,19 @@ Recall@10: 0.850
 ```bash
 $ uv run python -m student answer "What models does vLLM support?" --k 5
 
-🔍 Searching for: What models does vLLM support?
+Initializing...
+
+Searching for: What models does vLLM support?
 Found 5 chunks
 
-🤖 Generating answer...
+Generating answer...
 
-💬 Answer:
-vLLM supports a wide range of models including Llama, Mistral, Qwen, GPT-2, 
-Falcon, and many others. The full list of supported models is maintained in 
+Answer:
+vLLM supports a wide range of models including Llama, Mistral, Qwen, GPT-2,
+Falcon, and many others. The full list of supported models is maintained in
 the model registry...
 
-📚 Sources:
+Sources:
   - docs/models/supported_models.md
   - vllm/model_executor/models/__init__.py
   ...

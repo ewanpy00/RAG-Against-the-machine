@@ -97,7 +97,6 @@ class QueryExpander:
         if not query.strip():
             return query
 
-        # Tokenize (lowercase, alphanumeric only)
         words = re.findall(r"\b\w+\b", query.lower())
 
         expanded_terms = list(words)
@@ -119,11 +118,9 @@ class QueryExpander:
         """Get synonyms for a single word from all sources."""
         synonyms = []
 
-        # Domain-specific
         if self.use_domain and word in DOMAIN_SYNONYMS:
             synonyms.extend(DOMAIN_SYNONYMS[word])
 
-        # WordNet
         if self.use_wordnet and self.wordnet:
             synonyms.extend(self._wordnet_synonyms(word))
 

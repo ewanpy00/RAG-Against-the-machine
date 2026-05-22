@@ -1,5 +1,3 @@
-.PHONY: install index search evaluate help
-
 DATASET_ANSWERED   = data/datasets/AnsweredQuestions
 DATASET_UNANSWERED = data/datasets/UnansweredQuestions
 OUTPUT_DIR         = data/output/search_results
@@ -80,8 +78,14 @@ answer:
 
 answer-dataset:
 	uv run python -m student answer_dataset \
-		--dataset_path $(DATASET_UNANSWERED)/dataset_code_public.json \
-		--save_directory $(OUTPUT_DIR) --k $(K) --retriever $(RETRIEVER)
+		--student_search_results_path $(OUTPUT_DIR)/dataset_code_public.json \
+		--save_directory data/output/search_results_and_answer --k $(K)
 	uv run python -m student answer_dataset \
-		--dataset_path $(DATASET_UNANSWERED)/dataset_docs_public.json \
-		--save_directory $(OUTPUT_DIR) --k $(K) --retriever $(RETRIEVER)
+		--student_search_results_path $(OUTPUT_DIR)/dataset_docs_public.json \
+		--save_directory data/output/search_results_and_answer --k $(K)
+
+lint-strict:
+	uv run flake8 .
+	uv run mypy . --strict
+
+.PHONY: install run debug clean lint lint-strict index search search-dataset evaluate answer answer-dataset help

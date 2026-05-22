@@ -1,5 +1,3 @@
-убрать emoji при генерации
-
 проверить readme
 
 {
@@ -18,4 +16,10 @@ FileNotFoundError: Index not found: data/processed/bm25_index. Run 'index' comma
 
 зачем в evaluate k
 
-сравнить evaluate при embedding hybrid и bm25
+как считается call@k
+
+ошибка make evaluate до search-dataset
+
+ошибка - search-dataset hubrid до index с embeddings
+
+как работает кэширование 

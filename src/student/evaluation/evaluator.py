@@ -63,9 +63,16 @@ class Evaluator:
         correct_source: MinimalSource,
         retrieved_sources: list[MinimalSource],
     ) -> bool:
-        """Return True if any
-        retrieved source matches the correct source path."""
+        """Return True if any retrieved source overlaps the correct source by >= threshold."""
         for retrieved in retrieved_sources:
-            if correct_source.file_path.endswith(retrieved.file_path):
+            if not correct_source.file_path.endswith(retrieved.file_path):
+                continue
+            iou = self.calculate_iou(
+                (correct_source.first_character_index,
+                 correct_source.last_character_index),
+                (retrieved.first_character_index,
+                 retrieved.last_character_index),
+            )
+            if iou >= self.iou_threshold:
                 return True
         return False
