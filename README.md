@@ -152,38 +152,7 @@ for i in range(0, len(content), chunk_size):
 
 ---
 
-## Performance analysis
-
-All metrics measured on the public datasets and verified with the official moulinette evaluator.
-
-### Recall@K — docs dataset
-
-| K | Recall |
-|---|--------|
-| 1 | 0.590 (59.0%) |
-| 3 | 0.760 (76.0%) |
-| 5 | **0.820 (82.0%)** ← target: 80% ✅ |
-| 10 | 0.850 (85.0%) |
-
-### Recall@K — code dataset
-
-| K | Recall |
-|---|--------|
-| 1 | 0.360 (36.0%) |
-| 3 | 0.460 (46.0%) |
-| 5 | **0.520 (52.0%)** ← target: 50% ✅ |
-| 10 | 0.610 (61.0%) |
-
-### Analysis
-
-**Docs perform significantly better than code:**
-- Docs use natural language that matches BM25's strengths
-- Code identifiers (function names, type names) are highly specific, but questions often paraphrase them
-- Naive chunking splits code arbitrarily, breaking function/class boundaries
-
-**Observation: most relevant results in top-5.** Recall@10 only adds 3% on docs and 9% on code — suggesting BM25 ranks correct sources well, with diminishing returns past top-5.
-
-### Performance characteristics
+## Performance characteristics
 
 - **Indexing time:** ~30 seconds for ~14,800 chunks
 - **Cold-start latency:** under 5 seconds (Searcher initialization)
@@ -205,7 +174,7 @@ Built the minimal end-to-end pipeline first (Reader → Chunker → BM25 → Sea
 The BM25 index and chunks are loaded in `Searcher.__init__`, not on first query. This trades a one-time ~3-5s startup cost for predictable per-query latency.
 
 ### 4. Pydantic for all data models
-Type safety, automatic validation, and clear contracts between pipeline stages. Aliases (`question` ↔ `question_str`) handle Subject vs moulinette format differences.
+Type safety, automatic validation, and clear contracts between pipeline stages. Field names in `MinimalSearchResults` match the moulinette schema exactly (`question_str`).
 
 ### 5. IoU-based source matching in evaluator
 Following Subject (V.6.6), a retrieved source counts as "found" when:
@@ -222,10 +191,10 @@ After empirical testing, the moulinette evaluator expects `file_path` values to 
 ## Challenges faced
 
 ### 1. `file_path` format mismatch
-The Subject example showed relative paths (`docs/server.md`), but the ground-truth dataset and moulinette expected paths with the `data/raw/vllm-0.10.1/` prefix. Discovered when moulinette reported Recall@5 = 0% despite our internal evaluator showing 82%. Fix: prepend the prefix during `search_dataset`.
+The Subject example showed relative paths (`docs/server.md`), but the ground-truth dataset and moulinette expected paths with the `data/raw/vllm-0.10.1/` prefix. Discovered when moulinette reported Recall@5 = 0% despite our internal evaluator showing non-zero results. Fix: prepend the prefix during `search_dataset`.
 
-### 2. `question_str` vs `question` aliasing
-Pydantic models for `MinimalSearchResults` use `question_str` as the attribute (matching moulinette) but accept `question` as an alias (matching Subject). This dual support requires `populate_by_name=True` and `by_alias=True` during serialization.
+### 2. `question_str` vs `question` field name mismatch
+The Subject's example schema uses `question`, but moulinette's actual Pydantic model requires `question_str` in `MinimalSearchResults`. Fix: renamed the field in the student model to match moulinette exactly.
 
 ### 3. Oversized chunks from AST-based chunking
 An early `chunk_py` implementation used Python AST to split files by function/class. Some classes were 150,000+ characters — far over the 2000-char limit. Removed AST chunking for the baseline; could be reintroduced with size-checking for bonus.
@@ -235,6 +204,23 @@ The provided moulinette binary targets Linux (Ubuntu/Fedora). Local development 
 
 ### 5. BM25 corpus parameter
 `bm25s.retrieve(corpus=...)` requires either a corpus list or an indexable structure when `load_corpus=False`. Passing an integer fails with `'int' object is not subscriptable`. Fix: pass `np.arange(len(chunks))` so retrieval returns indices directly.
+
+---
+
+## Notes for staff
+
+- **Moulinette is provided as a pre-built binary** (`moulinette_pkg/moulinette-ubuntu`, `moulinette-ubuntu-fedora`), not as a Python package. The README inside `moulinette_pkg/` describes a build-from-source workflow that does not apply to the distributed version.
+
+- **The moulinette `MinimalSearchResults` schema differs from the Subject description.** The Subject uses `question` as the field name, but moulinette's actual Pydantic model requires `question_str`. Student output JSON must use `question_str` or validation fails with 100 errors.
+
+- **Correct moulinette invocation:**
+```bash
+./moulinette_pkg/moulinette-ubuntu evaluate_student_search_results \
+  --student_answer_path data/output/search_results/dataset_docs_public.json \
+  --dataset_path data/datasets/AnsweredQuestions/dataset_docs_public.json \
+  --k 10 \
+  --max_context_length 2000
+```
 
 ---
 

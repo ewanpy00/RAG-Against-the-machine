@@ -1,6 +1,4 @@
-import uuid
-
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class FileRecord(BaseModel):
@@ -33,7 +31,7 @@ class MinimalSource(BaseModel):
 class UnansweredQuestion(BaseModel):
     """A question without a ground-truth answer."""
 
-    question_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    question_id: str
     question: str
 
 
@@ -60,7 +58,7 @@ class MinimalSearchResults(BaseModel):
     """Retrieved sources for a single question."""
 
     question_id: str
-    question: str
+    question_str: str
     retrieved_sources: list[MinimalSource]
 
 
@@ -80,4 +78,4 @@ class StudentSearchResults(BaseModel):
 class StudentSearchResultsAndAnswer(StudentSearchResults):
     """Search output enriched with generated answers."""
 
-    search_results: list[MinimalAnswer]  # type: ignore[assignment]
+    search_results: list[MinimalAnswer]

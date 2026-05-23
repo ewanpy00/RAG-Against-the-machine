@@ -1,5 +1,4 @@
 import re
-from typing import List
 
 
 DOMAIN_SYNONYMS = {
@@ -59,7 +58,7 @@ class QueryExpander:
             return query
 
         words = re.findall(r"\b\w+\b", query.lower())
-        extra: List[str] = []
+        extra = []
 
         for word in words:
             synonyms = DOMAIN_SYNONYMS.get(word, [])

@@ -250,7 +250,7 @@ class CLI:
             search_results.append(
                 MinimalSearchResults(
                     question_id=question.question_id,
-                    question=question.question,
+                    question_str=question.question,
                     retrieved_sources=sources,
                 )
             )
@@ -426,10 +426,10 @@ class CLI:
                 except OSError:
                     continue
 
-            answer_text = generator.generate(result.question, chunks)
+            answer_text = generator.generate(result.question_str, chunks)
             answers.append(MinimalAnswer(
                 question_id=result.question_id,
-                question=result.question,
+                question_str=result.question_str,
                 retrieved_sources=result.retrieved_sources,
                 answer=answer_text,
             ))

@@ -1,7 +1,0 @@
-проверить lint в конце
-
-check edge cases/add error handling
-
-как считается call@k
-
-как работает кэширование 

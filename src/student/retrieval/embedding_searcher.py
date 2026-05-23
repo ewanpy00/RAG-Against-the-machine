@@ -3,7 +3,6 @@ from typing import List
 import json
 
 import numpy as np
-import torch
 from sentence_transformers import SentenceTransformer
 
 from student.models import Chunk
@@ -16,7 +15,6 @@ class EmbeddingSearcher:
         embeddings_path: Path = Path("data/processed/embeddings.npy"),
         chunks_path: Path = Path("data/processed/chunks.json"),
         meta_path: Path = Path("data/processed/embeddings_meta.json"),
-        device: str = None,
         use_cache: bool = False,
         cache_dir: Path = Path("data/cache")
     ):
@@ -39,16 +37,8 @@ class EmbeddingSearcher:
         meta = json.loads(meta_path.read_text())
         model_name = meta["model_name"]
 
-        if device is None:
-            if torch.cuda.is_available():
-                device = "cuda"
-            elif torch.backends.mps.is_available():
-                device = "mps"
-            else:
-                device = "cpu"
-
         print(f"Loading model: {model_name}")
-        self.model = SentenceTransformer(model_name, device=device)
+        self.model = SentenceTransformer(model_name, device="cpu")
 
         print(f"Loading embeddings: {embeddings_path}")
         self.embeddings = np.load(embeddings_path)
