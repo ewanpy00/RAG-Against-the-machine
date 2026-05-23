@@ -22,12 +22,6 @@ class ChunkerManager:
                 indent=2,
             )
 
-    def load_chunks(self) -> list[Chunk]:
-        """Deserialize chunks from JSON file."""
-        with open(self.chunk_dir, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return [Chunk(**item) for item in data]
-
 
 class Chunker:
     """Splits FileRecords into Chunks using AST for .py files."""

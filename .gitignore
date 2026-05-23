@@ -1,4 +1,5 @@
 notes.txt
 **/__pycache__/
 test.py
-utils.py
+/moulinette_pkg
+/data

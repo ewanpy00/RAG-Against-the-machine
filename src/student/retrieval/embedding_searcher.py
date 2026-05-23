@@ -120,16 +120,3 @@ class EmbeddingSearcher:
         top_k_indices = top_k_indices[np.argsort(-similarities[top_k_indices])]
 
         return [self.chunks[idx] for idx in top_k_indices]
-
-    def search_with_scores(self, query: str, k: int = 10) -> List[tuple]:
-        """Same as search but returns (chunk, score) tuples."""
-        if not query or not query.strip():
-            raise ValueError("Query cannot be empty")
-
-        query_embedding = self._encode_query(query)
-
-        similarities = self.embeddings @ query_embedding
-        top_k_indices = np.argpartition(-similarities, kth=min(k, len(similarities) - 1))[:k]
-        top_k_indices = top_k_indices[np.argsort(-similarities[top_k_indices])]
-
-        return [(self.chunks[idx], float(similarities[idx])) for idx in top_k_indices]

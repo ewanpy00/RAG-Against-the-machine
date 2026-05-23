@@ -37,7 +37,7 @@ clean:
 	find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
-	
+
 
 lint:
 	uv run flake8 .
@@ -84,8 +84,5 @@ answer-dataset:
 		--student_search_results_path $(OUTPUT_DIR)/dataset_docs_public.json \
 		--save_directory data/output/search_results_and_answer --k $(K)
 
-lint-strict:
-	uv run flake8 .
-	uv run mypy . --strict
 
-.PHONY: install run debug clean lint lint-strict index search search-dataset evaluate answer answer-dataset help
+.PHONY: install run debug clean lint index search search-dataset evaluate answer answer-dataset help

@@ -3,14 +3,6 @@ import uuid
 from pydantic import BaseModel, Field
 
 
-class Document(BaseModel):
-    """Raw document loaded from disk."""
-
-    id: str
-    text: str
-    metadata: dict = {}
-
-
 class FileRecord(BaseModel):
     """A single file read from the repository."""
 

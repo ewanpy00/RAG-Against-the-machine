@@ -1,4 +1,4 @@
-"""BM25-based search engine for code retrieval."""
+"""BM25-based search engine with optional query expansion."""
 
 import json
 from pathlib import Path
@@ -7,17 +7,17 @@ import bm25s
 import numpy as np
 
 from student.models import Chunk
+from student.retrieval.query_expander import QueryExpander
 
 
 class Searcher:
-    """Loads a BM25 i
-    ndex and retrieves the most
-    relevant chunks for a query."""
+    """Loads a BM25 index and retrieves the most relevant chunks for a query."""
 
     def __init__(
         self,
         index_dir: Path = Path("data/processed/bm25_index"),
         chunks_path: Path = Path("data/processed/chunks.json"),
+        expand: bool = True,
     ) -> None:
         if not index_dir.exists():
             raise FileNotFoundError(
@@ -34,6 +34,7 @@ class Searcher:
             chunks_data = json.load(f)
 
         self.chunks: list[Chunk] = [Chunk(**data) for data in chunks_data]
+        self.expander = QueryExpander(expand=expand)
 
     def search(self, query: str, k: int = 10) -> list[Chunk]:
         """Return top-k chunks most relevant to the query."""
@@ -42,7 +43,8 @@ class Searcher:
         if k < 1:
             raise ValueError("k must be >= 1")
 
-        query_tokens = bm25s.tokenize(query)
+        expanded = self.expander.expand(query)
+        query_tokens = bm25s.tokenize(expanded)
         results, _ = self.bm25.retrieve(
             query_tokens,
             corpus=np.arange(len(self.chunks)),

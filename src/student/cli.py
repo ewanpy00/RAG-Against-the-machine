@@ -39,6 +39,36 @@ def _load_json(path: Path, label: str) -> Any | None:
         return None
 
 
+def _validate_k(k: int) -> bool:
+    """Return False and print an error if k is not a positive integer."""
+    if not isinstance(k, int) or isinstance(k, bool):
+        print(f"Error: k must be an integer, got {type(k).__name__}.")
+        return False
+    if k < 1:
+        print(f"Error: k must be >= 1, got {k}.")
+        return False
+    return True
+
+
+def _validate_query(query: str) -> bool:
+    """Return False and print an error if query is empty or whitespace-only."""
+    if not isinstance(query, str):
+        print(f"Error: query must be a string, got {type(query).__name__}.")
+        return False
+    if not query.strip():
+        print("Error: query must not be empty.")
+        return False
+    return True
+
+
+def _validate_directory(path: str, label: str) -> bool:
+    """Return False and print an error if directory path is empty."""
+    if not isinstance(path, str) or not path.strip():
+        print(f"Error: {label} must not be empty.")
+        return False
+    return True
+
+
 class CLI:
     def index(
         self,
@@ -48,6 +78,18 @@ class CLI:
         build_embeddings: bool = False,
     ) -> None:
         """Index the repository into a searchable BM25 index."""
+        if not _validate_directory(output_dir, "output_dir"):
+            return
+        if not isinstance(max_chunk_size, int) or isinstance(max_chunk_size, bool):
+            print(f"Error: max_chunk_size must be an integer, got {type(max_chunk_size).__name__}.")
+            return
+        if max_chunk_size < 100:
+            print(f"Error: max_chunk_size must be >= 100, got {max_chunk_size}.")
+            return
+        if max_chunk_size > 100_000:
+            print(f"Error: max_chunk_size must be <= 100000, got {max_chunk_size}.")
+            return
+
         repo_path_obj = Path(repo_path)
         if not repo_path_obj.exists():
             print(f"Error: Repository path not found: {repo_path}")
@@ -87,10 +129,16 @@ class CLI:
 
     def search(self, query: str, k: int = 10) -> None:
         """Search the BM25 index for a single query."""
+        if not _validate_query(query):
+            return
+        if not _validate_k(k):
+            return
+
         try:
-            searcher = Searcher()
+            from student.retrieval.hybrid_searcher import HybridSearcher
+            searcher = HybridSearcher()
         except FileNotFoundError as e:
-            print(f"Error: BM25 index not found. Run 'make index' first.\n  {e}")
+            print(f"Error: hybrid indexes not found. Run 'make index EMBEDDIBG=True' first.\n  {e}")
             return
 
         results = searcher.search(query, k=k)
@@ -119,6 +167,11 @@ class CLI:
         retriever: str = "bm25",
     ) -> None:
         """Run retrieval over a dataset of questions and save results."""
+        if not _validate_k(k):
+            return
+        if not _validate_directory(save_directory, "save_directory"):
+            return
+
         start_time = time.time()
 
         try:
@@ -279,6 +332,11 @@ class CLI:
 
     def answer(self, query: str, k: int = 10) -> None:
         """Answer a single question using retrieved context."""
+        if not _validate_query(query):
+            return
+        if not _validate_k(k):
+            return
+
         print("Initializing...")
         try:
             searcher = Searcher()
@@ -308,6 +366,11 @@ class CLI:
         k: int = 10,
     ) -> None:
         """Generate answers for existing search results and save enriched output."""
+        if not _validate_k(k):
+            return
+        if not _validate_directory(save_directory, "save_directory"):
+            return
+
         raw = _load_json(Path(student_search_results_path), "Search results")
         if raw is None:
             return
