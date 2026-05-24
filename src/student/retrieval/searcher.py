@@ -1,5 +1,3 @@
-"""BM25-based search engine with optional query expansion."""
-
 import json
 from pathlib import Path
 
@@ -8,10 +6,16 @@ import numpy as np
 
 from student.models import Chunk
 from student.retrieval.query_expander import QueryExpander
+from student.ingestion.preprocessor import expand_identifiers
 
 
 class Searcher:
-    """Loads a BM25 index and retrieves the most relevant chunks for a query."""
+    """Loads a BM25 index and retrieves the most relevant chunks for a query.
+
+    Applies the same expand_identifiers() preprocessing to queries as the
+    Indexer applies to documents so that snake_case / CamelCase tokens
+    are matched correctly.
+    """
 
     def __init__(
         self,
@@ -36,6 +40,11 @@ class Searcher:
         self.chunks: list[Chunk] = [Chunk(**data) for data in chunks_data]
         self.expander = QueryExpander(expand=expand)
 
+    def _preprocess_query(self, query: str) -> str:
+        """Apply synonym expansion + identifier splitting to the query."""
+        expanded = self.expander.expand(query)
+        return expand_identifiers(expanded)
+
     def search(self, query: str, k: int = 10) -> list[Chunk]:
         """Return top-k chunks most relevant to the query."""
         if not query or not query.strip():
@@ -43,8 +52,8 @@ class Searcher:
         if k < 1:
             raise ValueError("k must be >= 1")
 
-        expanded = self.expander.expand(query)
-        query_tokens = bm25s.tokenize(expanded)
+        processed = self._preprocess_query(query)
+        query_tokens = bm25s.tokenize(processed, show_progress=False)
         results, _ = self.bm25.retrieve(
             query_tokens,
             corpus=np.arange(len(self.chunks)),

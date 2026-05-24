@@ -37,12 +37,55 @@ class Chunker:
                 offsets.append(i + 1)
         return offsets
 
+    def _make_chunks_for_text(
+        self,
+        record: FileRecord,
+        first_char: int,
+        last_char: int,
+    ) -> list[Chunk]:
+        """Split [first_char, last_char] into chunk_size pieces and return Chunks."""
+        node_text = record.content[first_char:last_char]
+        if not node_text.strip():
+            return []
+
+        if len(node_text) <= self.chunk_size:
+            return [Chunk(
+                chunk_id=f"{record.filepath}:{first_char}-{last_char}",
+                file_path=record.filepath,
+                first_character_index=first_char,
+                last_character_index=last_char,
+                text=node_text,
+                file_type=record.filetype,
+            )]
+
+        result = []
+        for i in range(0, len(node_text), self.chunk_size):
+            abs_first = first_char + i
+            abs_last = min(first_char + i + self.chunk_size, last_char)
+            result.append(Chunk(
+                chunk_id=f"{record.filepath}:{abs_first}-{abs_last}",
+                file_path=record.filepath,
+                first_character_index=abs_first,
+                last_character_index=abs_last,
+                text=node_text[i:i + self.chunk_size],
+                file_type=record.filetype,
+            ))
+        return result
+
     def chunk_py(self, record: FileRecord) -> list[Chunk]:
-        """Chunk a Python file by top-level functions and classes."""
+        """Chunk a Python file by top-level AST nodes.
+
+        Indexes functions and classes individually.  All module-level code
+        that sits *between* those definitions (imports, constants, assignments,
+        etc.) is collected into a separate "module header" chunk so that
+        e.g. constants and default-value assignments are searchable.
+        """
         try:
             tree = ast.parse(record.content)
             line_offsets = self.compute_line_offsets(record.content)
             chunks = []
+
+            covered: list[tuple[int, int]] = []
 
             for node in ast.iter_child_nodes(tree):
                 if not isinstance(
@@ -61,30 +104,36 @@ class Chunker:
                     if end_line < len(line_offsets)
                     else len(record.content)
                 )
-                node_text = record.content[first_char:last_char]
+                covered.append((first_char, last_char))
+                chunks.extend(
+                    self._make_chunks_for_text(record, first_char, last_char)
+                )
 
-                if len(node_text) <= self.chunk_size:
-                    chunks.append(Chunk(
-                        chunk_id=f"{record.filepath}:{first_char}-{last_char}",
-                        file_path=record.filepath,
-                        first_character_index=first_char,
-                        last_character_index=last_char,
-                        text=node_text,
-                        file_type=record.filetype,
-                    ))
-                else:
-                    for i in range(0, len(node_text), self.chunk_size):
-                        abs_first = first_char + i
-                        abs_l = min(
-                            first_char + i + self.chunk_size, last_char)
-                        chunks.append(Chunk(
-                            chunk_id=f"{record.filepath}:{abs_first}-{abs_l}",
-                            file_path=record.filepath,
-                            first_character_index=abs_first,
-                            last_character_index=abs_l,
-                            text=node_text[i:i + self.chunk_size],
-                            file_type=record.filetype,
-                        ))
+            covered_sorted = sorted(covered, key=lambda r: r[0])
+            gap_start = 0
+            gap_regions: list[tuple[int, int]] = []
+            for fc, lc in covered_sorted:
+                if fc > gap_start:
+                    gap_regions.append((gap_start, fc))
+                gap_start = max(gap_start, lc)
+            if gap_start < len(record.content):
+                gap_regions.append((gap_start, len(record.content)))
+
+            if gap_regions:
+                merged_start, merged_end = gap_regions[0]
+                for gs, ge in gap_regions[1:]:
+                    candidate_text = record.content[merged_start:ge]
+                    if len(candidate_text) <= self.chunk_size:
+                        merged_end = ge
+                    else:
+                        chunks.extend(
+                            self._make_chunks_for_text(
+                                record, merged_start, merged_end)
+                        )
+                        merged_start, merged_end = gs, ge
+                chunks.extend(
+                    self._make_chunks_for_text(record, merged_start, merged_end)
+                )
 
             return chunks
         except Exception as e:
