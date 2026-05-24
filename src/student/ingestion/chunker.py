@@ -42,7 +42,7 @@ class Chunker:
         try:
             tree = ast.parse(record.content)
             line_offsets = self.compute_line_offsets(record.content)
-            chunks: list[Chunk] = []
+            chunks = []
 
             for node in ast.iter_child_nodes(tree):
                 if not isinstance(

@@ -80,7 +80,7 @@ class CLI:
         """Index the repository into a searchable BM25 index."""
         if not _validate_directory(output_dir, "output_dir"):
             return
-        if not isinstance(max_chunk_size, int) or isinstance(max_chunk_size, bool):
+        if type(max_chunk_size) is not int:
             print(f"Error: max_chunk_size must be an integer, got {type(max_chunk_size).__name__}.")
             return
         if max_chunk_size < 100:
