@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from student.models import Chunk
 from student.retrieval.searcher import Searcher
@@ -8,8 +8,8 @@ from student.retrieval.embedding_searcher import EmbeddingSearcher
 class HybridSearcher:
     def __init__(
         self,
-        bm25_searcher: Searcher = None,
-        embedding_searcher: EmbeddingSearcher = None,
+        bm25_searcher: Optional[Searcher] = None,
+        embedding_searcher: Optional[EmbeddingSearcher] = None,
         rrf_k: int = 60,
     ):
         """Initialize hybrid searcher.
@@ -23,7 +23,9 @@ class HybridSearcher:
         self.embeddings = embedding_searcher or EmbeddingSearcher()
         self.rrf_k = rrf_k
 
-    def search(self, query: str, k: int = 10, candidate_k: int = 50) -> List[Chunk]:
+    def search(
+        self, query: str, k: int = 10, candidate_k: int = 50
+    ) -> List[Chunk]:
         """Hybrid search via RRF fusion.
 
         Args:
@@ -38,7 +40,7 @@ class HybridSearcher:
         bm25_chunks = self.bm25.search(query, k=candidate_k)
         embedding_chunks = self.embeddings.search(query, k=candidate_k)
 
-        rrf_scores = {}
+        rrf_scores: dict[str, float] = {}
 
         for rank, chunk in enumerate(bm25_chunks, start=1):
             chunk_id = chunk.chunk_id

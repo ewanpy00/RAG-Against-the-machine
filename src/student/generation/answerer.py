@@ -36,7 +36,7 @@ class AnswerGenerator:
 
         t0 = time.perf_counter()
         with torch.no_grad():
-            outputs = self.model.generate(
+            outputs = self.model.generate(  # type: ignore[misc]
                 **inputs,
                 max_new_tokens=self.max_new_tokens,
                 do_sample=False,
@@ -46,6 +46,7 @@ class AnswerGenerator:
 
         new_tokens = outputs[0][inputs["input_ids"].shape[1]:]
         answer = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+        assert isinstance(answer, str)
         print(f"Generation time: {elapsed:.2f}s ({len(new_tokens)} tokens)")
 
         return answer.strip()

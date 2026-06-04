@@ -10,7 +10,8 @@ class Indexer:
     """Builds and saves a BM25 index from a list of chunks.
 
     Tuned parameters for code search:
-    - k1=1.2  : softer term-frequency saturation (default 1.5 is too aggressive)
+    - k1=1.2  : softer term-frequency saturation
+                (default 1.5 is too aggressive)
     - b=0.4   : less length-normalisation (code files vary wildly in size)
 
     Each chunk is preprocessed with expand_identifiers() so that snake_case
@@ -26,8 +27,15 @@ class Indexer:
 
     @staticmethod
     def _prepare_text(chunk: Chunk) -> str:
-        """Return text enriched with file-path context and split identifiers."""
-        path_hint = chunk.file_path.replace("/", " ").replace("_", " ").replace(".", " ")
+        """Return text enriched with file-path context and split
+        identifiers.
+        """
+        path_hint = (
+            chunk.file_path
+            .replace("/", " ")
+            .replace("_", " ")
+            .replace(".", " ")
+        )
         raw = f"{path_hint} {chunk.text}"
         return expand_identifiers(raw)
 

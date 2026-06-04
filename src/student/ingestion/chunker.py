@@ -43,7 +43,9 @@ class Chunker:
         first_char: int,
         last_char: int,
     ) -> list[Chunk]:
-        """Split [first_char, last_char] into chunk_size pieces and return Chunks."""
+        """Split [first_char, last_char] into chunk_size pieces and return
+        Chunks.
+        """
         node_text = record.content[first_char:last_char]
         if not node_text.strip():
             return []
@@ -132,7 +134,8 @@ class Chunker:
                         )
                         merged_start, merged_end = gs, ge
                 chunks.extend(
-                    self._make_chunks_for_text(record, merged_start, merged_end)
+                    self._make_chunks_for_text(
+                        record, merged_start, merged_end)
                 )
 
             return chunks

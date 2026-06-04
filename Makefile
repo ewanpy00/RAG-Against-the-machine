@@ -40,8 +40,8 @@ clean:
 
 
 lint:
-	uv run flake8 .
-	uv run mypy . \
+	cd src && uv run flake8 .
+	uv run mypy src \
 		--warn-return-any \
 		--warn-unused-ignores \
 		--ignore-missing-imports \

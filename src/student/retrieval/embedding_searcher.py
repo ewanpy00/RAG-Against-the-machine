@@ -33,7 +33,7 @@ class EmbeddingSearcher:
                 f"Metadata not found: {meta_path}. "
                 f"Expected metadata with model info."
             )
-        
+
         meta = json.loads(meta_path.read_text())
         model_name = meta["model_name"]
 
@@ -48,7 +48,8 @@ class EmbeddingSearcher:
         self.chunks = [Chunk(**data) for data in chunks_data]
 
         assert len(self.chunks) == self.embeddings.shape[0], (
-            f"Mismatch: {len(self.chunks)} chunks vs {self.embeddings.shape[0]} embeddings"
+            f"Mismatch: {len(self.chunks)} chunks vs "
+            f"{self.embeddings.shape[0]} embeddings"
         )
 
         self.use_cache = use_cache
@@ -69,7 +70,9 @@ class EmbeddingSearcher:
         import hashlib
         normalized = self._normalize_query(query)
         query_hash = hashlib.md5(normalized.encode()).hexdigest()
-        return self.cache_dir / f"{query_hash}.npy"
+        assert self.cache_dir is not None
+        cache_dir: Path = self.cache_dir
+        return cache_dir / f"{query_hash}.npy"
 
     def _encode_query(self, query: str) -> np.ndarray:
         """Encode query with optional disk caching."""
@@ -78,9 +81,10 @@ class EmbeddingSearcher:
             cache_path = self._query_cache_path(query)
 
             if cache_path.exists():
-                return np.load(cache_path)
+                cached: np.ndarray = np.load(cache_path)
+                return cached
 
-        embedding = self.model.encode(
+        embedding: np.ndarray = self.model.encode(
             [query],
             normalize_embeddings=True,
             convert_to_numpy=True,
@@ -94,7 +98,7 @@ class EmbeddingSearcher:
 
     def search(self, query: str, k: int = 10) -> List[Chunk]:
         """Retrieve top-K chunks by cosine similarity.
- 
+
         Since embeddings are normalized, dot product = cosine similarity.
         """
         if not query or not query.strip():
@@ -106,7 +110,8 @@ class EmbeddingSearcher:
 
         similarities = self.embeddings @ query_embedding
 
-        top_k_indices = np.argpartition(-similarities, kth=min(k, len(similarities) - 1))[:k]
+        kth = min(k, len(similarities) - 1)
+        top_k_indices = np.argpartition(-similarities, kth=kth)[:k]
         top_k_indices = top_k_indices[np.argsort(-similarities[top_k_indices])]
 
         return [self.chunks[idx] for idx in top_k_indices]

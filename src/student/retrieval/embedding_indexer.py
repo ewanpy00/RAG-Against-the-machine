@@ -39,13 +39,16 @@ class EmbeddingIndexer:
         np.save(embeddings_path, embeddings)
 
         metadata = {
-            "model_name": self.model._first_module().auto_model.config.name_or_path,
+            "model_name": (
+                self.model._first_module().auto_model.config.name_or_path
+            ),
             "embedding_dim": embeddings.shape[1],
             "num_chunks": len(chunks),
         }
         metadata_path = output_dir / "embeddings_meta.json"
         metadata_path.write_text(json.dumps(metadata, indent=2))
-        
+
         print(f"Saved embeddings to {embeddings_path}")
         print(f"Shape: {embeddings.shape}")
-        print(f"Disk size: {embeddings_path.stat().st_size / 1024 / 1024:.1f} MB")
+        disk_mb = embeddings_path.stat().st_size / 1024 / 1024
+        print(f"Disk size: {disk_mb:.1f} MB")

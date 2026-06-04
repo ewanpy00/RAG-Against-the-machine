@@ -63,7 +63,9 @@ class Evaluator:
         correct_source: MinimalSource,
         retrieved_sources: list[MinimalSource],
     ) -> bool:
-        """Return True if any retrieved source overlaps the correct source by >= threshold."""
+        """Return True if any retrieved source overlaps
+        the correct source by >= threshold.
+        """
         for retrieved in retrieved_sources:
             if not correct_source.file_path.endswith(retrieved.file_path):
                 continue

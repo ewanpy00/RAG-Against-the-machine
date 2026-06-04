@@ -20,6 +20,7 @@ from student.models import (
     MinimalSearchResults,
     MinimalAnswer,
     MinimalSource,
+    UnansweredQuestion,
 )
 
 
@@ -81,13 +82,22 @@ class CLI:
         if not _validate_directory(output_dir, "output_dir"):
             return
         if type(max_chunk_size) is not int:
-            print(f"Error: max_chunk_size must be an integer, got {type(max_chunk_size).__name__}.")
+            print(
+                "Error: max_chunk_size must be an integer, "
+                f"got {type(max_chunk_size).__name__}."
+            )
             return
         if max_chunk_size < 100:
-            print(f"Error: max_chunk_size must be >= 100, got {max_chunk_size}.")
+            print(
+                f"Error: max_chunk_size must be >= 100, "
+                f"got {max_chunk_size}."
+            )
             return
         if max_chunk_size > 100_000:
-            print(f"Error: max_chunk_size must be <= 100000, got {max_chunk_size}.")
+            print(
+                f"Error: max_chunk_size must be <= 100000, "
+                f"got {max_chunk_size}."
+            )
             return
 
         repo_path_obj = Path(repo_path)
@@ -138,7 +148,10 @@ class CLI:
             from student.retrieval.hybrid_searcher import HybridSearcher
             searcher = HybridSearcher()
         except FileNotFoundError as e:
-            print(f"Error: hybrid indexes not found. Run 'make index EMBEDDIBG=True' first.\n  {e}")
+            print(
+                "Error: hybrid indexes not found. "
+                f"Run 'make index EMBEDDIBG=True' first.\n  {e}"
+            )
             return
 
         results = searcher.search(query, k=k)
@@ -178,12 +191,18 @@ class CLI:
             if retriever == "bm25":
                 searcher = Searcher()
             elif retriever == "embedding":
-                from student.retrieval.embedding_searcher import EmbeddingSearcher
-                searcher = EmbeddingSearcher(use_cache=True)
+                from student.retrieval.embedding_searcher import (
+                    EmbeddingSearcher,
+                )
+                searcher = EmbeddingSearcher(  # type: ignore[assignment]
+                    use_cache=True
+                )
             elif retriever == "hybrid":
-                from student.retrieval.embedding_searcher import EmbeddingSearcher
+                from student.retrieval.embedding_searcher import (
+                    EmbeddingSearcher,
+                )
                 from student.retrieval.hybrid_searcher import HybridSearcher
-                searcher = HybridSearcher(
+                searcher = HybridSearcher(  # type: ignore[assignment]
                     embedding_searcher=EmbeddingSearcher(use_cache=True)
                 )
             else:
@@ -195,11 +214,14 @@ class CLI:
         except FileNotFoundError as e:
             if "embeddings" in str(e).lower():
                 print(
-                    f"Error: Embedding index not found. "
+                    "Error: Embedding index not found. "
                     f"Run 'make index build_embeddings=True' first.\n  {e}"
                 )
             else:
-                print(f"Error: Index not found. Run 'make index' first.\n  {e}")
+                print(
+                    f"Error: Index not found. "
+                    f"Run 'make index' first.\n  {e}"
+                )
             return
 
         dataset_path_obj = Path(dataset_path)
@@ -211,17 +233,26 @@ class CLI:
 
         if isinstance(raw, list):
             print(
-                f"Error: Dataset file contains a plain list — expected an object "
-                f"with 'rag_questions' key.\n"
-                f"  Got {len(raw)} items. Check that you're pointing at the right file."
+                "Error: Dataset file contains a plain list — "
+                "expected an object with 'rag_questions' key.\n"
+                f"  Got {len(raw)} items. "
+                "Check that you're pointing at the right file."
             )
             return
 
         try:
             if "rag_questions" in raw:
-                questions = QuestionDataset(**raw).rag_questions
+                questions: list[UnansweredQuestion] = (
+                    QuestionDataset(**raw).rag_questions
+                )
             else:
-                questions = StudentSearchResults(**raw).search_results
+                questions = [
+                    UnansweredQuestion(
+                        question_id=r.question_id,
+                        question=r.question_str,
+                    )
+                    for r in StudentSearchResults(**raw).search_results
+                ]
         except Exception as e:
             print(f"Error: Failed to parse dataset: {e}")
             return
@@ -281,9 +312,10 @@ class CLI:
 
         if isinstance(raw, list):
             print(
-                "Error: Student results file contains a plain list — expected an "
-                "object with 'search_results' key.\n"
-                "  Run 'make search-dataset' first to generate the correct format."
+                "Error: Student results file contains a plain list — "
+                "expected an object with 'search_results' key.\n"
+                "  Run 'make search-dataset' first to generate "
+                "the correct format."
             )
             return
 
@@ -341,7 +373,10 @@ class CLI:
         try:
             searcher = Searcher()
         except FileNotFoundError as e:
-            print(f"Error: BM25 index not found. Run 'make index' first.\n  {e}")
+            print(
+                f"Error: BM25 index not found. "
+                f"Run 'make index' first.\n  {e}"
+            )
             return
 
         generator = AnswerGenerator()
@@ -365,7 +400,7 @@ class CLI:
         save_directory: str,
         k: int = 10,
     ) -> None:
-        """Generate answers for existing search results and save enriched output."""
+        """Generate answers for existing search results and save output."""
         if not _validate_k(k):
             return
         if not _validate_directory(save_directory, "save_directory"):
@@ -409,7 +444,8 @@ class CLI:
                     with open(source.file_path, "r", encoding="utf-8") as f:
                         content = f.read()
                     text = content[
-                        source.first_character_index:source.last_character_index
+                        source.first_character_index:
+                        source.last_character_index
                     ]
                     chunks.append(Chunk(
                         chunk_id=(

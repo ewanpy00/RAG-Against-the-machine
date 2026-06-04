@@ -18,7 +18,7 @@ def _split_camel_case(word: str) -> list[str]:
     Examples:
         FusedMoEActivationFormat -> ['Fused', 'Mo', 'EActivation', 'Format']
         CudaGraph                -> ['Cuda', 'Graph']
-        FP8_MIN                  -> ['FP', '8', 'MIN']  (handled by snake split)
+        FP8_MIN  -> ['FP', '8', 'MIN']  (handled by snake split)
     """
     parts = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", word)
     parts = re.sub(r"([a-z\d])([A-Z])", r"\1 \2", parts)
@@ -31,7 +31,8 @@ def _split_snake_case(word: str) -> list[str]:
 
 
 def expand_identifiers(text: str) -> str:
-    """Return original text with extra space-separated identifier parts appended.
+    """Return original text with extra space-separated identifier parts
+    appended.
 
     For each token that looks like an identifier (contains _ or mixed case),
     append its split form so BM25 indexes both the original and the parts.
